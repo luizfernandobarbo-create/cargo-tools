@@ -1,0 +1,33 @@
+{
+  "name": "Cargo Tools — Cubagem e Giro",
+  "short_name": "Cargo Tools",
+  "description": "Cubagem, peso taxado e tabela de giro dos porões: B737-800/700 (GOL) e A320 (Avianca).",
+  "lang": "pt-BR",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0E1A25",
+  "theme_color": "#0E1A25",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

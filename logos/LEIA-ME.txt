@@ -1,0 +1,9 @@
+Logos oficiais das companhias (opcional)
+
+Coloque nesta pasta os arquivos com estes nomes:
+  gol.svg      ou  gol.png
+  avianca.svg  ou  avianca.png
+
+O cabeçalho do app é azul-escuro: use a versão do logo para fundo escuro.
+Um PNG com fundo transparente e cerca de 120 px de altura fica nítido.
+Sem os arquivos, o app mostra um selo com o nome da companhia.

@@ -1,0 +1,1814 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark" data-carrier="gol">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1A25">
+<meta name="color-scheme" content="dark light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cargo Tools">
+<meta name="description" content="Cubagem, peso taxado e tabela de giro dos porões: B737-800/700 (GOL) e A320 (Avianca).">
+<title>Cargo Tools — Cubagem e Giro</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preload" href="fonts/barlow-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/barlow-condensed-800.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:'Barlow';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/barlow-400.woff2) format('woff2')}
+@font-face{font-family:'Barlow';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/barlow-500.woff2) format('woff2')}
+@font-face{font-family:'Barlow';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/barlow-600.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/barlow-condensed-600.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/barlow-condensed-700.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:800;font-display:swap;src:url(fonts/barlow-condensed-800.woff2) format('woff2')}
+</style>
+<script>
+/* Aplica tema e companhia antes da primeira pintura (sem piscar) */
+(function () {
+  var d = document.documentElement, t = null, a = null;
+  try { t = localStorage.getItem('ct-tema'); a = localStorage.getItem('ct-aeronave'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark') {
+    t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+  }
+  d.setAttribute('data-theme', t);
+  if (a === 'A320') d.setAttribute('data-carrier', 'avianca');
+})();
+</script>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   TOKENS — tema escuro (pátio à noite) e claro (sol no pátio)
+   Cabeçalho escuro nos dois temas; cor de destaque por companhia
+═══════════════════════════════════════════════════════════════ */
+:root {
+  --font: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-c: 'Barlow Condensed', 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --hdr-h: 60px;
+  --nav-h: 66px;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --r-xl: 20px; --r-lg: 16px; --r-md: 12px; --r-sm: 9px;
+  --hdr-bg: #0E1A25; --hdr-ink: #F2F6FA; --hdr-ink-2: rgba(242,246,250,.62);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101C27;
+  --surf: #162432; --surf-2: #1D2D3C; --surf-3: #263949;
+  --line: rgba(214,230,245,.10); --line-2: rgba(214,230,245,.19);
+  --ink: #E9F0F6; --ink-2: #A3B6C7; --ink-3: #71869A;
+  --field: #0F1A24;
+  --ok: #45D68D;   --ok-bg: rgba(69,214,141,.12);  --ok-line: rgba(69,214,141,.45);
+  --err: #FF6B6B;  --err-bg: rgba(255,107,107,.12); --err-line: rgba(255,107,107,.5);
+  --warn: #FFC94A; --warn-bg: rgba(255,201,74,.11); --warn-line: rgba(255,201,74,.42);
+  --info: #66C9FF;
+  --on-lamp: #0B151E;
+  --shadow: none;
+  --shadow-pop: 0 18px 50px rgba(0,0,0,.55);
+  --nav-bg: #0C1720;
+  --kraft-1: #CDA678; --kraft-2: #B3895B; --kraft-3: #926941; --kraft-edge: #6E4A26; --tape: #F2C94C;
+  --box-g1: rgba(163,182,199,.30); --box-g2: rgba(163,182,199,.18); --box-g3: rgba(163,182,199,.10);
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #E7ECF0;
+  --surf: #FFFFFF; --surf-2: #F2F5F7; --surf-3: #E2E8ED;
+  --line: #D6DEE5; --line-2: #BCC8D2;
+  --ink: #0E1B27; --ink-2: #435567; --ink-3: #6F8194;
+  --field: #F7F9FA;
+  --ok: #0E7A44;   --ok-bg: #E1F3E8; --ok-line: #8FCDAA;
+  --err: #C1272D;  --err-bg: #FCE8E8; --err-line: #EAA6A9;
+  --warn: #855A00; --warn-bg: #FFF4D6; --warn-line: #E3C67F;
+  --info: #0A6797;
+  --on-lamp: #FFFFFF;
+  --shadow: 0 1px 2px rgba(14,27,39,.05), 0 4px 14px rgba(14,27,39,.06);
+  --shadow-pop: 0 20px 50px rgba(14,27,39,.25);
+  --nav-bg: #FFFFFF;
+  --kraft-1: #DDB989; --kraft-2: #C79D6B; --kraft-3: #A87D4C; --kraft-edge: #7D5530; --tape: #E9B92C;
+  --box-g1: #E4EAEF; --box-g2: #D3DCE3; --box-g3: #C1CDD7;
+}
+/* Companhia: GOL (laranja) · Avianca (vermelho) */
+:root[data-carrier="gol"]     { --brand: #FF6200; --on-brand: #FFFFFF; }
+:root[data-carrier="avianca"] { --brand: #E3051B; --on-brand: #FFFFFF; }
+:root[data-theme="dark"][data-carrier="gol"]      { --brand-ink: #FF8A3D; --brand-bg: rgba(255,98,0,.15);  --brand-line: rgba(255,138,61,.5); }
+:root[data-theme="light"][data-carrier="gol"]     { --brand-ink: #C24A00; --brand-bg: #FFEEE2;            --brand-line: #FFB98A; }
+:root[data-theme="dark"][data-carrier="avianca"]  { --brand-ink: #FF5D6C; --brand-bg: rgba(227,5,27,.18); --brand-line: rgba(255,93,108,.55); }
+:root[data-theme="light"][data-carrier="avianca"] { --brand-ink: #B5000F; --brand-bg: #FDE7E9;            --brand-line: #F3A1A9; }
+
+/* ═══ Base ═══ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  height: 100%; overflow: hidden;
+  background: var(--bg); color: var(--ink);
+  font: 400 15px/1.5 var(--font);
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+button, input { font: inherit; color: inherit; letter-spacing: inherit; }
+button { background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+button:disabled { cursor: not-allowed; }
+[hidden] { display: none !important; }
+.ic { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.num { font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 2px; }
+@keyframes entra { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sobe { from { transform: translateY(36px); opacity: .5; } to { transform: none; opacity: 1; } }
+@keyframes pop { 0% { transform: scale(.9); } 60% { transform: scale(1.05); } 100% { transform: scale(1); } }
+.pop { animation: pop .25s ease; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* ═══ Cabeçalho ═══ */
+.hdr {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+  padding-top: var(--safe-t);
+  background: var(--hdr-bg); color: var(--hdr-ink);
+  box-shadow: inset 0 -3px 0 var(--brand);
+}
+.hdr-in {
+  height: var(--hdr-h); max-width: 640px; margin: 0 auto;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 6px 3px 16px;
+}
+.brand { display: flex; align-items: center; flex: none; }
+.brand img { display: block; height: 28px; width: auto; max-width: 128px; object-fit: contain; }
+.badge {
+  display: inline-block; white-space: nowrap;
+  font: 800 16px/1 var(--font-c); letter-spacing: .14em;
+  padding: 6px 7px 5px 9px; border-radius: 6px;
+  background: var(--brand); color: var(--on-brand);
+}
+.badge.sm { font-size: 12.5px; padding: 5px 5px 4px 7px; border-radius: 5px; letter-spacing: .12em; }
+.ac-btn {
+  display: flex; flex-direction: column; align-items: flex-start; min-width: 0;
+  padding: 5px 8px; border-radius: 10px; text-align: left; color: inherit;
+}
+.ac-btn:active { background: rgba(255,255,255,.08); }
+.ac-name { display: flex; align-items: center; gap: 3px; font: 800 21px/1.05 var(--font-c); letter-spacing: .02em; }
+.ac-name .ic { width: 17px; height: 17px; opacity: .65; }
+.ac-src { font-size: 11.5px; line-height: 1.3; color: var(--hdr-ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50vw; }
+.hdr-act { margin-left: auto; display: flex; }
+.hbtn { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: var(--hdr-ink); }
+.hbtn:active { background: rgba(255,255,255,.1); }
+[data-theme="dark"] .i-lua, [data-theme="light"] .i-sol { display: none; }
+
+/* ═══ Telas ═══ */
+.app {
+  position: fixed; left: 0; right: 0;
+  top: calc(var(--hdr-h) + var(--safe-t));
+  bottom: calc(var(--nav-h) + var(--safe-b));
+}
+.screen {
+  position: absolute; inset: 0; display: none;
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+}
+.screen.on { display: block; animation: entra .18s ease-out; }
+.wrap { max-width: 600px; margin: 0 auto; padding: 18px 16px 32px; }
+.title { font: 800 30px/1.02 var(--font-c); letter-spacing: .005em; }
+.sub { margin-top: 6px; color: var(--ink-2); font-size: 14px; line-height: 1.45; }
+.title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.h2 { font: 800 20px/1.15 var(--font-c); letter-spacing: .01em; margin: 24px 0 10px; }
+.h2:first-of-type { margin-top: 18px; }
+
+/* Botões */
+.btn {
+  min-height: 48px; padding: 0 14px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font: 800 18px/1 var(--font-c); letter-spacing: .03em;
+  border: 1.5px solid var(--line-2); background: var(--surf-2); color: var(--ink);
+}
+.btn:active { transform: scale(.98); }
+.btn.pri { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.btn.full { width: 100%; margin-top: 12px; }
+.btn-sm {
+  min-height: 38px; padding: 0 12px; border-radius: 10px; flex: none;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  font: 700 16px/1 var(--font-c); letter-spacing: .03em;
+  border: 1.5px solid var(--line-2); background: var(--surf); color: var(--ink);
+}
+.btn-sm .ic { width: 17px; height: 17px; color: var(--ink-2); }
+.btn-sm:active { transform: scale(.97); }
+
+/* Controle segmentado */
+.seg {
+  display: flex; gap: 3px; padding: 3px; margin-bottom: 10px;
+  background: var(--surf-2); border: 1px solid var(--line); border-radius: 13px;
+}
+.seg-btn {
+  flex: 1; min-height: 42px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font: 700 16px/1 var(--font-c); letter-spacing: .03em; color: var(--ink-2);
+  transition: background .15s, color .15s;
+}
+.seg-btn.on { background: var(--brand); color: var(--on-brand); box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+.seg-btn:disabled { opacity: .45; }
+.seg-btn .ic { width: 15px; height: 15px; }
+.note { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; line-height: 1.4; color: var(--ink-2); margin: 0 4px 12px; }
+.note .ic { width: 16px; height: 16px; margin-top: 2px; color: var(--brand-ink); }
+
+/* ═══ Início ═══ */
+.hero {
+  background: var(--surf); border: 1px solid var(--line); border-radius: var(--r-xl);
+  box-shadow: var(--shadow); padding: 18px 16px 8px; margin-bottom: 12px; overflow: hidden;
+}
+.hero-top { display: flex; align-items: flex-start; gap: 12px; }
+.hero-txt { flex: 1; min-width: 0; }
+.hero-ac { font: 800 38px/.98 var(--font-c); letter-spacing: .005em; }
+.hero-m { font-size: 14px; color: var(--ink-2); margin-top: 7px; }
+.plane { display: block; width: 100%; height: auto; margin-top: 6px; }
+.plane .fus { fill: var(--surf-2); stroke: var(--ink-3); stroke-width: 1.3; stroke-linejoin: round; }
+.plane .fin { fill: var(--surf-3); stroke: var(--ink-3); stroke-width: 1.3; stroke-linejoin: round; }
+.plane .wing { fill: var(--surf-3); stroke: var(--ink-3); stroke-width: 1.2; stroke-linejoin: round; }
+.plane .eng { fill: var(--surf-3); stroke: var(--ink-3); stroke-width: 1.2; }
+.plane .cock { fill: var(--ink-3); }
+.plane .win { stroke: var(--ink-3); stroke-width: 2.4; stroke-dasharray: .1 6.2; stroke-linecap: round; opacity: .75; }
+.plane .floor { stroke: var(--line-2); stroke-width: 1; stroke-dasharray: 3 3; }
+.plane .hold { fill: var(--brand-bg); stroke: var(--brand-ink); stroke-width: 1.4; }
+.plane .lead { stroke: var(--brand-ink); stroke-width: 1; opacity: .6; }
+.plane .lbl { font: 700 13.5px var(--font-c); fill: var(--ink); letter-spacing: .02em; }
+.plane .lbl2 { font: 500 11px var(--font); fill: var(--ink-3); }
+
+.quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.tile {
+  display: flex; flex-direction: column; align-items: flex-start; text-align: left;
+  min-height: 108px; padding: 14px 12px 12px; border-radius: var(--r-lg);
+  background: var(--surf); border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+.tile:active { transform: scale(.97); }
+.tile .ic { width: 24px; height: 24px; color: var(--brand-ink); margin-bottom: 14px; }
+.tile-t { font: 800 19px/1.1 var(--font-c); letter-spacing: .01em; }
+.tile-s { font-size: 12.5px; line-height: 1.3; color: var(--ink-3); margin-top: 2px; }
+
+.facts { background: var(--surf); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; }
+.facts-h { padding: 14px 14px 6px; font: 800 20px/1.2 var(--font-c); letter-spacing: .01em; }
+.fact { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 9px 14px; border-top: 1px solid var(--line); font-size: 14px; }
+.facts-h + .fact { border-top: 0; }
+.fact span:first-child { color: var(--ink-2); }
+.fact span:last-child { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ═══ Cubagem ═══ */
+.verdict {
+  position: sticky; top: 0; z-index: 5; cursor: pointer;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 6px 14px -10px rgba(0,0,0,.35);
+}
+.verdict-in { max-width: 600px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 10px 16px; }
+.lamp-xl { width: 14px; height: 30px; border-radius: 5px; background: var(--line-2); flex: none; transition: background .2s, box-shadow .2s; }
+.v-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.v-t { font: 800 21px/1.1 var(--font-c); letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v-s { font-size: 12.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v-n { text-align: right; flex: none; }
+.v-nl { display: block; font-size: 12px; color: var(--ink-3); }
+.v-nv { display: block; font: 800 25px/1 var(--font-c); font-variant-numeric: tabular-nums; }
+.v-nv small, .res-v small, .gref-max small { font: 500 12.5px var(--font); color: var(--ink-3); margin-left: 3px; }
+.verdict.ok .lamp-xl   { background: var(--ok);   box-shadow: 0 0 14px var(--ok-line); }
+.verdict.err .lamp-xl  { background: var(--err);  box-shadow: 0 0 14px var(--err-line); }
+.verdict.warn .lamp-xl { background: var(--warn); box-shadow: 0 0 14px var(--warn-line); }
+.verdict.ok .v-t { color: var(--ok); } .verdict.err .v-t { color: var(--err); } .verdict.warn .v-t { color: var(--warn); }
+
+.picker {
+  width: 100%; display: flex; align-items: center; gap: 12px; text-align: left;
+  padding: 11px 12px 11px 12px; margin: 2px 0 16px;
+  background: var(--surf); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow);
+}
+.picker:active { transform: scale(.99); }
+.picker.set { border-color: var(--brand-line); }
+.picker-ic { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; flex: none; background: var(--surf-2); color: var(--ink-2); }
+.picker.set .picker-ic { background: var(--brand); color: var(--on-brand); }
+.picker-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.picker-l { font-size: 12.5px; color: var(--ink-3); }
+.picker-v { font: 700 18px/1.25 var(--font-c); letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.picker-v b { font: inherit; color: var(--brand-ink); margin-right: 6px; }
+.chev { color: var(--ink-3); }
+
+.group { background: var(--surf); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
+.group-t { padding: 12px 14px 0; font-size: 13px; font-weight: 600; color: var(--ink-3); }
+.field { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-top: 1px solid var(--line); }
+.group-t + .field, .field:first-child { border-top: 0; }
+.field label { flex: 1; font-size: 15.5px; color: var(--ink-2); }
+.inp { display: flex; align-items: center; gap: 8px; width: 58%; max-width: 230px; }
+.inp input {
+  flex: 1; min-width: 0; height: 46px; padding: 0 12px;
+  background: var(--field); border: 1.5px solid var(--line-2); border-radius: 11px;
+  font: 600 20px/1 var(--font); font-variant-numeric: tabular-nums; text-align: right; color: var(--ink);
+  outline: none; -webkit-appearance: none; appearance: none; -moz-appearance: textfield;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.inp input::-webkit-outer-spin-button, .inp input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.inp input::placeholder { color: var(--ink-3); opacity: .6; }
+.inp input:focus { border-color: var(--brand-ink); box-shadow: 0 0 0 3px var(--brand-bg); }
+.inp input.ok { border-color: var(--ok-line); }
+.inp input.err { border-color: var(--err); background: var(--err-bg); }
+.inp em { font-style: normal; font-size: 13.5px; color: var(--ink-3); width: 22px; }
+
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 12px; }
+.chk { padding: 11px 12px 10px; border-radius: var(--r-md); background: var(--surf); border: 1px solid var(--line); box-shadow: var(--shadow); min-width: 0; }
+.chk-h { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink-3); }
+.lamp { width: 9px; height: 9px; border-radius: 50%; background: var(--line-2); flex: none; }
+.chk-v { font: 700 22px/1.15 var(--font-c); font-variant-numeric: tabular-nums; margin-top: 3px; }
+.chk-s { font-size: 12.5px; color: var(--ink-3); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chk.ok { border-color: var(--ok-line); }
+.chk.ok .lamp { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-bg); }
+.chk.ok .chk-s { color: var(--ok); }
+.chk.err { border-color: var(--err-line); background: var(--err-bg); }
+.chk.err .lamp { background: var(--err); box-shadow: 0 0 0 3px var(--err-bg); }
+.chk.err .chk-s, .chk.err .chk-v { color: var(--err); }
+
+.gref {
+  display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; margin-bottom: 12px;
+  background: var(--surf); border: 1px solid var(--line); border-left: 4px solid var(--line-2);
+  border-radius: var(--r-md); box-shadow: var(--shadow);
+}
+.gref.ok { border-left-color: var(--ok); } .gref.err { border-left-color: var(--err); }
+.gref-b { flex: 1; min-width: 0; }
+.gref-t { font-size: 13px; color: var(--ink-3); }
+.gref-d { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; margin-top: 3px; }
+.gref-d b { color: var(--ink); font-weight: 600; }
+.gref-max { font: 800 26px/1 var(--font-c); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-3); }
+.gref.ok .gref-max { color: var(--ok); } .gref.err .gref-max { color: var(--err); }
+.tag {
+  display: inline-block; font: 600 11.5px/1 var(--font); padding: 3px 7px; margin-right: 6px; vertical-align: 1px;
+  border-radius: 6px; background: var(--surf-2); border: 1px solid var(--line); color: var(--ink-2);
+}
+
+.res { background: var(--surf); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
+.res-row { display: grid; grid-template-columns: 1fr 1fr; }
+.res-cell { padding: 12px 14px; }
+.res-cell + .res-cell { border-left: 1px solid var(--line); }
+.res-l { font-size: 13px; color: var(--ink-3); }
+.res-v { font: 700 25px/1.15 var(--font-c); font-variant-numeric: tabular-nums; }
+.res-tax { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border-top: 1px solid var(--line); background: var(--surf-2); }
+.res-tax .res-l { color: var(--ink); font-weight: 600; font-size: 15px; }
+.res-h { font-size: 12.5px; color: var(--ink-3); }
+.res-tax .res-v { font-size: 40px; font-weight: 800; line-height: 1; }
+
+.status {
+  display: flex; gap: 12px; align-items: flex-start; padding: 14px; margin-bottom: 12px; scroll-margin-top: 72px;
+  border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surf);
+}
+.st-ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex: none; background: var(--surf-2); color: var(--ink-2); }
+.st-b { flex: 1; min-width: 0; }
+.st-t { font: 800 20px/1.15 var(--font-c); letter-spacing: .01em; padding-top: 5px; }
+.st-l { list-style: none; margin-top: 4px; }
+.st-l li { position: relative; padding-left: 13px; margin-top: 3px; font-size: 14px; line-height: 1.45; color: var(--ink-2); }
+.st-l li::before { content: ''; position: absolute; left: 1px; top: .62em; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .55; }
+.status.ok   { background: var(--ok-bg);   border-color: var(--ok-line); }
+.status.err  { background: var(--err-bg);  border-color: var(--err-line); }
+.status.warn { background: var(--warn-bg); border-color: var(--warn-line); }
+.status.ok .st-ic   { background: var(--ok);   color: var(--on-lamp); }
+.status.err .st-ic  { background: var(--err);  color: var(--on-lamp); }
+.status.warn .st-ic { background: var(--warn); color: var(--on-lamp); }
+.status.ok .st-t { color: var(--ok); } .status.err .st-t { color: var(--err); } .status.warn .st-t { color: var(--warn); }
+
+/* Orientação alternativa */
+.alt { background: var(--surf); border: 1.5px solid var(--brand-line); border-radius: var(--r-lg); box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; scroll-margin-top: 72px; animation: entra .25s ease-out; }
+.alt.done { border-color: var(--ok-line); }
+.alt-h { display: flex; align-items: center; gap: 8px; padding: 13px 12px 2px 14px; font: 800 19px/1.2 var(--font-c); letter-spacing: 0; }
+.alt-h .ic { color: var(--brand-ink); width: 22px; height: 22px; }
+.alt.done .alt-h .ic { color: var(--ok); }
+.alt-nav { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 1px; font: 600 13px var(--font); font-variant-numeric: tabular-nums; padding: 6px 5px 6px 10px; border-radius: 999px; background: var(--surf-2); border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; }
+.alt-nav .ic { width: 15px; height: 15px; color: var(--ink-2); }
+.alt-draw { padding: 6px 8px 0; }
+.alt-svg { display: block; width: 100%; height: auto; max-height: 250px; }
+.legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; font-size: 12px; color: var(--ink-3); padding: 6px 10px 12px; }
+.legend i { display: inline-block; width: 16px; height: 6px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.legend i.fita { background: var(--tape); }
+.legend i.lim { height: 0; border-radius: 0; border-top: 2px dashed var(--err); }
+.alt-b { padding: 12px 14px 14px; border-top: 1px solid var(--line); }
+.alt-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 3px 0; font-size: 14px; color: var(--ink-3); }
+.dims { font: 700 18px/1.2 var(--font-c); font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.dims .mud { color: var(--brand-ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.dims.off { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--err); }
+.alt-note { font-size: 14px; line-height: 1.5; color: var(--ink-2); margin-top: 8px; }
+.alt-q { font: 800 20px/1.2 var(--font-c); margin: 14px 0 10px; }
+.alt-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.warnbox { display: flex; gap: 9px; margin-top: 12px; padding: 10px 12px; border-radius: 11px; font-size: 13.5px; line-height: 1.45; background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--ink); }
+.warnbox .ic { color: var(--warn); width: 18px; height: 18px; margin-top: 1px; }
+.warnbox.err { background: var(--err-bg); border-color: var(--err-line); }
+.warnbox.err .ic { color: var(--err); }
+.alt-mini { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.alt-mini .t { flex: 1; min-width: 0; font-size: 14px; color: var(--ink-2); }
+.alt-mini .t .dims { display: block; margin-top: 2px; }
+
+/* Desenho isométrico */
+.alt-svg .bxf { stroke-width: 1.3; stroke-linejoin: round; }
+.alt-svg .bxf.ok { stroke: var(--kraft-edge); }
+.alt-svg .bx-top.ok { fill: var(--kraft-1); } .alt-svg .bx-esq.ok { fill: var(--kraft-2); } .alt-svg .bx-dir.ok { fill: var(--kraft-3); }
+.alt-svg .bxf.err { stroke: var(--err); }
+.alt-svg .bx-top.err { fill: var(--box-g1); } .alt-svg .bx-esq.err { fill: var(--box-g2); } .alt-svg .bx-dir.err { fill: var(--box-g3); }
+.alt-svg .fita { fill: var(--tape); opacity: .92; }
+.alt-svg .limite { fill: none; stroke: var(--err); stroke-width: 1.4; stroke-dasharray: 4 3; }
+.alt-svg .limite-t { fill: var(--err); font: 700 10px var(--font); }
+.alt-svg .pill rect { fill: var(--surf); stroke-width: 1.2; }
+.alt-svg .pill text { font: 700 11px var(--font); font-variant-numeric: tabular-nums; }
+.alt-svg .pill.ok rect { stroke: var(--ok-line); }   .alt-svg .pill.ok text { fill: var(--ok); }
+.alt-svg .pill.err rect { stroke: var(--err-line); } .alt-svg .pill.err text { fill: var(--err); }
+.alt-svg .pill.neu rect { stroke: var(--line-2); }   .alt-svg .pill.neu text { fill: var(--ink-2); }
+.alt-svg .cap { font: 800 13px var(--font-c); letter-spacing: .04em; }
+.alt-svg .cap.ok { fill: var(--ok); } .alt-svg .cap.err { fill: var(--err); }
+.alt-svg .seta { fill: none; stroke: var(--brand-ink); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ═══ Giro e tabelas ═══ */
+.lk { background: var(--surf); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow); margin: 4px 0 12px; overflow: hidden; }
+.lk-in { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 14px; }
+.lk-f { display: block; min-width: 0; }
+.lk-cap { display: block; font-size: 13px; color: var(--ink-3); margin-bottom: 5px; }
+.lk-f .inp { width: 100%; max-width: none; }
+.lk-out { display: flex; align-items: center; gap: 10px; padding: 12px 14px 4px; border-top: 1px solid var(--line); background: var(--surf-2); }
+.lk-out .l { font-size: 15px; font-weight: 600; }
+.lk-out .v { margin-left: auto; font: 800 44px/1 var(--font-c); font-variant-numeric: tabular-nums; color: var(--ok); }
+.lk-out .v.na { font-size: 26px; color: var(--ink-3); }
+.lk-out em { font-style: normal; color: var(--ink-3); font-size: 13.5px; }
+.lk-note { padding: 2px 14px 13px; font-size: 13.5px; line-height: 1.45; color: var(--ink-3); background: var(--surf-2); }
+.lk-note.adj { color: var(--info); } .lk-note.err { color: var(--err); } .lk-note.warn { color: var(--warn); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.chip { font-size: 12.5px; padding: 5px 10px; border-radius: 999px; background: var(--surf); border: 1px solid var(--line); color: var(--ink-2); }
+.chip b { color: var(--ink); font-weight: 600; }
+
+.tbl {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow);
+  /* sombra na borda direita enquanto houver colunas escondidas */
+  background:
+    linear-gradient(to left, var(--surf) 40%, transparent) right center / 36px 100% no-repeat local,
+    linear-gradient(to left, var(--tbl-sombra), transparent) right center / 18px 100% no-repeat scroll,
+    var(--surf);
+}
+:root[data-theme="dark"]  { --tbl-sombra: rgba(0,0,0,.55); }
+:root[data-theme="light"] { --tbl-sombra: rgba(14,27,39,.16); }
+.dica { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-3); margin: 0 2px 6px; }
+.dica .ic { width: 15px; height: 15px; }
+.gt { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 460px; font: 500 13.5px/1 var(--font); font-variant-numeric: tabular-nums; }
+.gt th, .gt td { padding: 9px 7px; text-align: center; white-space: nowrap; border-bottom: 1px solid var(--line); }
+.gt thead th { background: var(--surf-2); color: var(--ink-2); font: 700 14px/1 var(--font-c); letter-spacing: .02em; }
+.gt thead th:first-child { position: sticky; left: 0; z-index: 2; text-align: left; padding-left: 10px; color: var(--ink-3); font-weight: 600; border-right: 1px solid var(--line); }
+.gt tbody th { position: sticky; left: 0; z-index: 1; text-align: left; padding-left: 10px; background: var(--surf-2); font: 700 14px/1 var(--font-c); color: var(--ink); border-right: 1px solid var(--line); }
+.gt tbody tr:last-child th, .gt tbody tr:last-child td { border-bottom: 0; }
+.gt td.na { color: var(--ink-3); }
+.gt td.hi { font-weight: 700; }
+.gt .fora { color: var(--ink-3); background-image: repeating-linear-gradient(135deg, transparent 0 5px, var(--line) 5px 6px); }
+.gt thead th.col-on { background: var(--brand-bg); color: var(--brand-ink); }
+.gt tr.row-on th { background: linear-gradient(var(--brand-bg), var(--brand-bg)), var(--surf-2); color: var(--brand-ink); }
+.gt tr.row-on td { background-color: var(--brand-bg); }
+.gt tbody tr td.cell-on { background: var(--brand); color: var(--on-brand); font-weight: 700; }
+.tbl-foot { font-size: 12.5px; color: var(--ink-3); margin-top: 8px; line-height: 1.5; }
+
+/* ═══ Navegação ═══ */
+.nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--nav-bg); border-top: 1px solid var(--line); padding-bottom: var(--safe-b); }
+.nav-in { height: var(--nav-h); max-width: 600px; margin: 0 auto; display: flex; padding: 0 4px; }
+.nb { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--ink-3); font: 600 12.5px/1 var(--font); }
+.nb .pill { width: 58px; height: 32px; border-radius: 16px; display: grid; place-items: center; transition: background .18s, color .18s; }
+.nb .ic { width: 22px; height: 22px; }
+.nb.on { color: var(--ink); }
+.nb.on .pill { background: var(--brand-bg); color: var(--brand-ink); }
+
+/* ═══ Folhas (seleção de aeronave e destino) ═══ */
+.ov { position: fixed; inset: 0; z-index: 60; display: none; align-items: flex-end; justify-content: center; background: rgba(5,12,18,.55); }
+.ov.on { display: flex; animation: entra .15s ease-out; }
+.sheet {
+  width: 100%; max-width: 560px; max-height: 86vh; display: flex; flex-direction: column;
+  background: var(--surf); border-radius: 22px 22px 0 0; padding-bottom: calc(12px + var(--safe-b));
+  box-shadow: var(--shadow-pop); animation: sobe .22s cubic-bezier(.2,.8,.2,1);
+}
+.handle { width: 40px; height: 4px; border-radius: 2px; background: var(--line-2); margin: 10px auto 4px; flex: none; }
+.sheet-t { font: 800 22px/1.2 var(--font-c); padding: 8px 20px 10px; }
+.sheet-list { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.opt { width: 100%; display: flex; align-items: center; gap: 14px; padding: 13px 20px; border-top: 1px solid var(--line); text-align: left; }
+.opt:active { background: var(--surf-2); }
+.opt-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.opt-m { font: 700 19px/1.2 var(--font-c); letter-spacing: .01em; }
+.opt-s { font-size: 13px; color: var(--ink-3); }
+.opt-chk { color: var(--brand-ink); visibility: hidden; }
+.opt.sel .opt-chk { visibility: visible; }
+.opt.sel .opt-m { color: var(--brand-ink); }
+.code { flex: none; width: 54px; padding: 7px 0; text-align: center; border-radius: 8px; font: 700 15px/1 var(--font-c); letter-spacing: .06em; background: var(--surf-2); border: 1px solid var(--line); color: var(--ink); display: grid; place-items: center; }
+.code .ic { width: 17px; height: 17px; color: var(--ink-2); }
+.kg { flex: none; font: 700 15px/1 var(--font-c); font-variant-numeric: tabular-nums; padding: 6px 9px; border-radius: 8px; white-space: nowrap; }
+.kg.std { background: var(--ok-bg); color: var(--ok); }
+.kg.mid { background: var(--warn-bg); color: var(--warn); }
+.kg.low { background: var(--err-bg); color: var(--err); }
+.sheet-foot { font-size: 13px; line-height: 1.5; color: var(--ink-3); padding: 12px 20px 4px; border-top: 1px solid var(--line); }
+
+/* Aviso rápido */
+.toast {
+  position: fixed; left: 50%; z-index: 70; bottom: calc(var(--nav-h) + var(--safe-b) + 12px);
+  transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+  display: flex; align-items: center; gap: 12px; width: max-content; max-width: min(92vw, 520px);
+  padding: 11px 12px 11px 16px; border-radius: 14px; font-size: 14px; line-height: 1.4;
+  background: var(--hdr-bg); color: var(--hdr-ink); box-shadow: var(--shadow-pop);
+  transition: opacity .2s, transform .2s;
+}
+.toast.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.toast button { flex: none; font: 700 16px/1 var(--font-c); letter-spacing: .03em; color: #fff; background: var(--brand); padding: 8px 12px; border-radius: 9px; }
+
+@media (max-width: 370px) {
+  .wrap { padding-left: 14px; padding-right: 14px; }
+  .inp { width: 56%; }
+  .hero-ac { font-size: 34px; }
+  .tile { padding: 12px 10px 10px; }
+  .tile-t { font-size: 17px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Ícones -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 10.6 12 3.8l8.5 6.8"/><path d="M5.6 9v10.3c0 .4.3.7.7.7H10v-5.6h4V20h3.7c.4 0 .7-.3.7-.7V9"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M12 2.8 3.8 7.2v9.6l8.2 4.4 8.2-4.4V7.2z"/><path d="M3.8 7.2 12 11.6l8.2-4.4M12 11.6v9.6M7.9 5l8.2 4.4"/></symbol>
+  <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20.2 3.6v4.6h-4.6"/><path d="M9 9.5h6v5H9z"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 4.5v15"/></symbol>
+  <symbol id="i-plane" viewBox="0 0 24 24"><path d="M10.7 3.7c0-.9.6-1.7 1.3-1.7s1.3.8 1.3 1.7v5.5l7.6 4.6v2.1l-7.6-2.4v4.6l2.2 1.7v1.6L12 20.6l-3.5.8v-1.6l2.2-1.7v-4.6L3.1 15.9v-2.1l7.6-4.6z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.8 14.7A8.2 8.2 0 0 1 9.3 4.2a8.2 8.2 0 1 0 10.5 10.5z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.5 5.2 3.5 8.5s-1.2 6.1-3.5 8.5c-2.3-2.4-3.5-5.2-3.5-8.5s1.2-6.1 3.5-8.5z"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="m6.5 6.5 11 11M17.5 6.5l-11 11"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.8 2.8 19.6h18.4z"/><path d="M12 10v4.3M12 17v.1"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4.5 9.5 9 5"/><path d="M4.5 9.5H15a5 5 0 0 1 0 10h-3"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9.2 18h5.6M10.2 21h3.6"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2v.2h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/></symbol>
+  <symbol id="i-clear" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l.9 12.2c.1.7.6 1.3 1.4 1.3h6.4c.8 0 1.3-.6 1.4-1.3L17.5 7"/></symbol>
+</svg>
+
+<!-- Cabeçalho -->
+<header class="hdr">
+  <div class="hdr-in">
+    <div class="brand"><img id="brand-img" alt="" hidden><span class="badge" id="brand-badge">GOL</span></div>
+    <button class="ac-btn" onclick="abrirSheet('ac-sheet')" aria-label="Trocar aeronave">
+      <span class="ac-name"><span id="hdr-ac">B737-800</span><svg class="ic"><use href="#i-down"/></svg></span>
+      <span class="ac-src" id="hdr-src">MN-CGO-FF-006</span>
+    </button>
+    <div class="hdr-act">
+      <button class="hbtn" id="theme-btn" onclick="alternarTema()" aria-label="Usar tema claro">
+        <svg class="ic i-sol"><use href="#i-sun"/></svg><svg class="ic i-lua"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="app">
+
+  <!-- ── Início ── -->
+  <section class="screen on" id="screen-home">
+    <div class="wrap">
+      <div class="hero">
+        <div class="hero-top">
+          <div class="hero-txt">
+            <h1 class="hero-ac" id="hero-ac">Boeing 737-800</h1>
+            <p class="hero-m" id="hero-m">Frota GOL, voos nacionais e internacionais</p>
+          </div>
+          <button class="btn-sm" onclick="abrirSheet('ac-sheet')"><svg class="ic"><use href="#i-plane"/></svg>Trocar</button>
+        </div>
+        <svg class="plane" id="plane" viewBox="0 0 340 108" role="img" aria-label="Porões dianteiro e traseiro"></svg>
+      </div>
+
+      <div class="quick">
+        <button class="tile" onclick="goScreen('cubagem')"><svg class="ic"><use href="#i-box"/></svg><span class="tile-t">Cubagem</span><span class="tile-s">Peso taxado e limites</span></button>
+        <button class="tile" onclick="goScreen('giro')"><svg class="ic"><use href="#i-rotate"/></svg><span class="tile-t">Giro</span><span class="tile-s">Comprimento máximo</span></button>
+        <button class="tile" onclick="goScreen('ref')"><svg class="ic"><use href="#i-table"/></svg><span class="tile-t">Tabelas</span><span class="tile-s">Os dois porões</span></button>
+      </div>
+
+      <div class="facts" id="facts"></div>
+    </div>
+  </section>
+
+  <!-- ── Cubagem ── -->
+  <section class="screen" id="screen-cubagem">
+    <div class="verdict" id="verdict" role="status" aria-live="polite" onclick="irPara('cub-status')">
+      <div class="verdict-in">
+        <span class="lamp-xl"></span>
+        <span class="v-txt"><span class="v-t" id="v-t">Preencha as medidas</span><span class="v-s" id="v-s">B737-800, porão dianteiro</span></span>
+        <span class="v-n"><span class="v-nl" id="v-nl">Peso taxado</span><span class="v-nv" id="v-nv">—</span></span>
+      </div>
+    </div>
+    <div class="wrap">
+      <div class="title-row">
+        <h1 class="title">Cubagem</h1>
+        <button class="btn-sm" onclick="limparCub()"><svg class="ic"><use href="#i-clear"/></svg>Limpar</button>
+      </div>
+
+      <div class="seg" id="cub-po-seg">
+        <button class="seg-btn on" data-v="Dianteiro" onclick="setPo('Dianteiro')">Porão dianteiro</button>
+        <button class="seg-btn" data-v="Traseiro" onclick="setPo('Traseiro')">Porão traseiro</button>
+      </div>
+      <div class="seg" id="malha-seg">
+        <button class="seg-btn on" data-v="INTL" onclick="setMalha('INTL')">Internacional</button>
+        <button class="seg-btn" data-v="NAC" onclick="setMalha('NAC')"><svg class="ic lock" hidden><use href="#i-lock"/></svg>Nacional</button>
+      </div>
+      <p class="note" id="malha-note" hidden><svg class="ic"><use href="#i-lock"/></svg><span id="malha-note-t"></span></p>
+
+      <button class="picker" id="airport-picker" onclick="abrirAeroportos()">
+        <span class="picker-ic" id="ap-ic"></span>
+        <span class="picker-txt"><span class="picker-l" id="ap-l">Aeroporto de destino</span><span class="picker-v" id="ap-v">Sem restrição, até 200 kg</span></span>
+        <svg class="ic chev"><use href="#i-chev"/></svg>
+      </button>
+
+      <div class="group">
+        <p class="group-t">Medidas do volume</p>
+        <div class="field"><label for="c-comp">Comprimento</label><span class="inp"><input id="c-comp" type="number" inputmode="numeric" enterkeyhint="next" min="0" placeholder="0" oninput="calcCub()"><em>cm</em></span></div>
+        <div class="field"><label for="c-larg">Largura</label><span class="inp"><input id="c-larg" type="number" inputmode="numeric" enterkeyhint="next" min="0" placeholder="0" oninput="calcCub()"><em>cm</em></span></div>
+        <div class="field"><label for="c-alt">Altura</label><span class="inp"><input id="c-alt" type="number" inputmode="numeric" enterkeyhint="next" min="0" placeholder="0" oninput="calcCub()"><em>cm</em></span></div>
+      </div>
+      <div class="group">
+        <div class="field"><label for="c-peso">Peso bruto</label><span class="inp"><input id="c-peso" type="number" inputmode="decimal" enterkeyhint="done" min="0" placeholder="0" oninput="calcCub()"><em>kg</em></span></div>
+      </div>
+
+      <div class="checks">
+        <div class="chk" id="chk-comp"><div class="chk-h"><span class="lamp"></span>Comprimento</div><div class="chk-v">—</div><div class="chk-s">não informado</div></div>
+        <div class="chk" id="chk-larg"><div class="chk-h"><span class="lamp"></span>Largura</div><div class="chk-v">—</div><div class="chk-s">não informado</div></div>
+        <div class="chk" id="chk-alt"><div class="chk-h"><span class="lamp"></span>Altura</div><div class="chk-v">—</div><div class="chk-s">não informado</div></div>
+        <div class="chk" id="chk-peso"><div class="chk-h"><span class="lamp"></span>Peso</div><div class="chk-v">—</div><div class="chk-s">não informado</div></div>
+      </div>
+
+      <div class="gref" id="cub-giro">
+        <div class="gref-b"><p class="gref-t">Comprimento máximo pela tabela de giro</p><p class="gref-d" id="cg-d"></p></div>
+        <span class="gref-max" id="cg-max">—</span>
+      </div>
+
+      <div class="res">
+        <div class="res-row">
+          <div class="res-cell"><p class="res-l">Peso cubado</p><p class="res-v"><span id="r-cubado">—</span><small>kg</small></p></div>
+          <div class="res-cell"><p class="res-l">Peso bruto</p><p class="res-v"><span id="r-bruto">—</span><small>kg</small></p></div>
+        </div>
+        <div class="res-tax">
+          <div><p class="res-l">Peso taxado</p><p class="res-h">O maior entre cubado e bruto</p></div>
+          <p class="res-v"><span id="r-taxado">—</span><small>kg</small></p>
+        </div>
+      </div>
+
+      <div class="status" id="cub-status">
+        <span class="st-ic" id="st-ic"></span>
+        <div class="st-b"><p class="st-t" id="st-t">Preencha as medidas</p><ul class="st-l" id="st-l"></ul></div>
+      </div>
+
+      <div class="alt" id="alt-card" hidden></div>
+    </div>
+  </section>
+
+  <!-- ── Giro ── -->
+  <section class="screen" id="screen-giro">
+    <div class="wrap">
+      <h1 class="title">Tabela de giro</h1>
+      <p class="sub" id="giro-sub">Comprimento máximo do volume pela altura e pela largura.</p>
+      <div style="height:14px"></div>
+      <div class="seg" id="giro-po-seg">
+        <button class="seg-btn on" data-v="Dianteiro" onclick="setGiroPo('Dianteiro')">Porão dianteiro</button>
+        <button class="seg-btn" data-v="Traseiro" onclick="setGiroPo('Traseiro')">Porão traseiro</button>
+      </div>
+      <div class="lk">
+        <div class="lk-in">
+          <label class="lk-f"><span class="lk-cap">Altura</span><span class="inp"><input id="g-alt" type="number" inputmode="numeric" enterkeyhint="next" min="1" placeholder="0" oninput="lookupGiro()"><em>cm</em></span></label>
+          <label class="lk-f"><span class="lk-cap">Largura</span><span class="inp"><input id="g-larg" type="number" inputmode="numeric" enterkeyhint="done" min="1" placeholder="0" oninput="lookupGiro()"><em>cm</em></span></label>
+        </div>
+        <div class="lk-out"><span class="l">Comprimento máximo</span><b class="v na" id="g-result">—</b><em>cm</em></div>
+        <p class="lk-note" id="g-note">Informe altura e largura</p>
+      </div>
+      <div class="chips" id="giro-chips"></div>
+      <p class="dica" id="giro-dica" hidden><span></span><svg class="ic"><use href="#i-chev"/></svg></p>
+      <div class="tbl" id="giro-tbl"><table class="gt" id="giro-table"></table></div>
+      <p class="tbl-foot" id="giro-foot"></p>
+    </div>
+  </section>
+
+  <!-- ── Tabelas completas ── -->
+  <section class="screen" id="screen-ref">
+    <div class="wrap">
+      <h1 class="title">Tabelas completas</h1>
+      <p class="sub">Comprimento máximo em cm para cada altura e largura.</p>
+      <div style="height:14px"></div>
+      <div class="seg" id="ref-ac-seg">
+        <button class="seg-btn on" data-v="800" onclick="setRefAc('800')">737-800</button>
+        <button class="seg-btn" data-v="700" onclick="setRefAc('700')">737-700</button>
+        <button class="seg-btn" data-v="A320" onclick="setRefAc('A320')">A320</button>
+      </div>
+      <h2 class="h2">Porão dianteiro</h2>
+      <div class="chips" id="ref-fwd-chips"></div>
+      <p class="dica" id="ref-fwd-dica" hidden><span></span><svg class="ic"><use href="#i-chev"/></svg></p>
+      <div class="tbl"><table class="gt" id="ref-fwd-table"></table></div>
+      <h2 class="h2">Porão traseiro</h2>
+      <div class="chips" id="ref-aft-chips"></div>
+      <p class="dica" id="ref-aft-dica" hidden><span></span><svg class="ic"><use href="#i-chev"/></svg></p>
+      <div class="tbl"><table class="gt" id="ref-aft-table"></table></div>
+      <p class="tbl-foot" id="ref-foot"></p>
+    </div>
+  </section>
+
+</main>
+
+<!-- Navegação -->
+<nav class="nav" aria-label="Navegação">
+  <div class="nav-in">
+    <button class="nb on" id="nb-home" onclick="goScreen('home')"><span class="pill"><svg class="ic"><use href="#i-home"/></svg></span>Início</button>
+    <button class="nb" id="nb-cubagem" onclick="goScreen('cubagem')"><span class="pill"><svg class="ic"><use href="#i-box"/></svg></span>Cubagem</button>
+    <button class="nb" id="nb-giro" onclick="goScreen('giro')"><span class="pill"><svg class="ic"><use href="#i-rotate"/></svg></span>Giro</button>
+    <button class="nb" id="nb-ref" onclick="goScreen('ref')"><span class="pill"><svg class="ic"><use href="#i-table"/></svg></span>Tabelas</button>
+  </div>
+</nav>
+
+<!-- Folha: aeronave -->
+<div class="ov" id="ac-sheet" onclick="fecharSheet(event)">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ac-sheet-t">
+    <div class="handle"></div>
+    <h2 class="sheet-t" id="ac-sheet-t">Escolha a aeronave</h2>
+    <div class="sheet-list" id="ac-list"></div>
+  </div>
+</div>
+
+<!-- Folha: aeroporto de destino -->
+<div class="ov" id="airport-sheet" onclick="fecharSheet(event)">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="airport-sheet-t">
+    <div class="handle"></div>
+    <h2 class="sheet-t" id="airport-sheet-t">Aeroporto de destino</h2>
+    <div class="sheet-list" id="airport-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+
+// ═══════════════════════════════════════════════════════════════
+// TABELAS DE GIRO
+// Linhas = altura (cm) · colunas = largura (cm) · valor = comprimento máximo (cm)
+// null = combinação não aplicável ("—")
+// ═══════════════════════════════════════════════════════════════
+
+// ── B737 (GOL) — MN-CGO-FF-006 Rev.05 ─────────────────────────────
+const H737 = [82, 81, 76, 71, 66, 61, 56, 51, 46, 41, 36, 30, 25, 13];
+const W737 = [13, 25, 38, 51, 64, 76, 89, 102, 114, 122];
+
+const T738_FWD = {
+  82: [284, 254, 229, 206, 185, 170, 155, 145, 137, 135],
+  81: [null, 295, 264, 239, 216, 196, 180, 168, 160, 157],
+  76: [381, null, 297, 267, 241, 221, 203, 188, 180, 175],
+  71: [427, 373, 315, 295, 267, 241, 224, 208, 196, 193],
+  66: [478, 109, 361, 320, 287, 262, 239, 224, 211, 206],
+  61: [533, 450, 391, 348, 310, 282, 257, 239, 226, 221],
+  56: [587, 493, 424, 373, null, 300, 274, 254, 239, 231],
+  51: [645, 533, 457, 399, 353, 318, 290, 267, 249, 244],
+  46: [693, 579, 490, 424, 373, 335, 302, 279, 259, 254],
+  41: [696, 627, 523, 450, 401, 353, 318, 290, 269, 262],
+  36: [699, 678, 559, 478, 429, 368, 330, 302, 278, 272],
+  30: [704, 693, 592, 500, 434, 384, 343, 312, 287, 279],
+  25: [704, 696, 635, 533, 460, 404, 361, 328, 300, 284],
+  13: [711, 701, 693, 615, 521, 452, 401, 361, 330, 295],
+};
+const T738_AFT = {
+  82: [226, 196, 168, 147, 132, null, null, null, null, null],
+  81: [315, 274, 236, 208, 183, 163, 145, 132, 124, 124],
+  76: [406, 356, 312, 279, 251, 226, 206, 191, 178, 170],
+  71: [447, 386, 338, 300, 267, 239, 216, 198, 185, 178],
+  66: [511, 434, 376, 330, 295, 264, 239, 218, 203, 193],
+  61: [579, 480, 411, 361, 320, 287, 259, 236, 221, 208],
+  56: [627, 523, 450, 386, 340, 305, 274, 251, 234, 224],
+  51: [699, 572, 485, 422, 373, 325, 295, 267, 246, 234],
+  46: [859, 615, 523, 447, 394, 343, 310, 282, 259, 246],
+  41: [861, 673, 559, 478, 417, 363, 325, 295, 269, 254],
+  36: [864, 744, 605, 511, 442, 389, 340, 307, 282, 264],
+  30: [866, 589, 643, 538, 462, 406, 363, 330, 302, 272],
+  25: [871, 861, 693, 574, 483, 422, 376, 338, 310, 279],
+  13: [876, 864, 856, 681, 561, 478, 414, 366, 333, 305],
+};
+const T737_FWD = {
+  82: [388, 292, 257, 226, 201, 180, 160, 147, 137, 135],
+  81: [378, 335, 292, 259, 231, 206, 185, 170, 160, 157],
+  76: [389, 378, 330, 290, 257, 229, 208, 191, 180, 175],
+  71: [396, 389, 381, 328, 290, 257, 231, 211, 196, 193],
+  66: [401, 394, 386, 351, 307, 274, 246, 226, 211, 206],
+  61: [409, 401, 394, 386, 335, 297, 267, 244, 226, 221],
+  56: [417, 409, 401, 394, 356, 315, 282, 257, 236, 231],
+  51: [422, 414, 406, 401, 384, 338, 302, 272, 251, 241],
+  46: [429, 422, 414, 406, 399, 356, 315, 284, 262, 251],
+  41: [437, 432, 417, 409, 401, 368, 325, 292, 267, 257],
+  36: [439, 432, 424, 417, 411, 391, 345, 310, 279, 269],
+  30: [442, 434, 429, 422, 414, 401, 358, 320, 392, 277],
+  25: [447, 439, 434, 427, 419, 414, 371, 330, 307, 284],
+  13: [455, 447, 439, 434, 427, 422, 414, 363, 318, 302],
+};
+const T737_AFT = {
+  82: [226, 196, 168, 147, 132, null, null, null, null, null],
+  81: [315, 274, 236, 208, 183, 163, 145, 132, 124, 124],
+  76: [406, 356, 312, 279, 251, 226, 206, 191, 178, 170],
+  71: [447, 386, 338, 300, 267, 239, 216, 198, 185, 178],
+  66: [511, 434, 376, 330, 295, 264, 239, 218, 203, 193],
+  61: [579, 480, 411, 361, 320, 287, 259, 236, 221, 208],
+  56: [587, 523, 450, 386, 340, 305, 274, 251, 234, 224],
+  51: [589, 582, 485, 422, 373, 325, 295, 267, 246, 234],
+  46: [594, 587, 518, 447, 394, 343, 310, 282, 259, 246],
+  41: [599, 589, 559, 478, 417, 363, 325, 295, 269, 254],
+  36: [602, 594, 587, 511, 442, 389, 340, 307, 282, 264],
+  30: [605, 597, 589, 538, 462, 406, 363, 330, 302, 272],
+  25: [610, 599, 592, 566, 483, 422, 376, 338, 310, 279],
+  13: [627, 607, 599, 592, 559, 475, 414, 366, 325, 295],
+};
+
+// ── A320 (Avianca) — Manual Geral de Cargas, título 1, cap. 5, seção 7 ──
+// Alturas em faixas: a chave é o limite superior da faixa (70 = até 70 · 97 = 71 a 97 · 115 = 98 a 115)
+const H320 = [115, 97, 70];
+const FAIXAS_320 = { 115: '98 a 115', 97: '71 a 97', 70: 'até 70' };   // espaços que não quebram linha
+const W320_FWD = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 164];
+const W320_AFT = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 171];
+const T320_FWD = {
+  115: [415, 395, 375, 355, 335, 315, 294, 274, 254, 234, 214, 194, 173, 165, 143, 143],
+  97:  [475, 475, 455, 435, 414, 394, 374, 354, 334, 314, 294, 273, 253, 233, 212, 200],
+  70:  [475, 475, 475, 475, 475, 465, 444, 424, 403, 382, 362, 341, 319, 298, 275, 253],
+};
+const T320_AFT = {
+  115: [424, 404, 384, 364, 344, 324, 304, 284, 264, 243, 223, 203, 182, 172, 143, 143, 143],
+  97:  [485, 485, 465, 445, 425, 405, 384, 364, 344, 324, 304, 284, 264, 243, 223, 202, 200],
+  70:  [485, 485, 485, 485, 485, 475, 455, 435, 414, 394, 373, 352, 331, 310, 288, 266, 253],
+};
+
+// ═══════════════════════════════════════════════════════════════
+// FROTA E COMPANHIAS
+// alt / larg = limites de aceite (altura máxima e menor lado da base)
+// ═══════════════════════════════════════════════════════════════
+const CIAS = {
+  gol:     { nome: 'GOL',     selo: 'GOL',     cor: '#FF6200' },
+  avianca: { nome: 'Avianca', selo: 'AVIANCA', cor: '#E3051B' },
+};
+
+// Ordem de exibição (chaves numéricas de objeto não mantêm a ordem escrita)
+const ORDEM_FROTA = ['800', '700', 'A320'];
+
+const FROTA = {
+  '800': {
+    id: '800', nome: 'B737-800', modelo: 'Boeing 737-800', cia: 'gol',
+    descricao: 'Voos nacionais e internacionais', malhas: ['INTL', 'NAC'],
+    alt: 82, larg: 122,
+    fonte: 'MN-CGO-FF-006 Rev.05', fonteCurta: 'MN-CGO-FF-006',
+    poroes: {
+      FWD: { alturas: H737, larguras: W737, linhas: T738_FWD },
+      AFT: { alturas: H737, larguras: W737, linhas: T738_AFT },
+    },
+  },
+  '700': {
+    id: '700', nome: 'B737-700', modelo: 'Boeing 737-700', cia: 'gol',
+    descricao: 'Voos nacionais e internacionais', malhas: ['INTL', 'NAC'],
+    alt: 82, larg: 122,
+    fonte: 'MN-CGO-FF-006 Rev.05', fonteCurta: 'MN-CGO-FF-006',
+    poroes: {
+      FWD: { alturas: H737, larguras: W737, linhas: T737_FWD },
+      AFT: { alturas: H737, larguras: W737, linhas: T737_AFT },
+    },
+  },
+  'A320': {
+    id: 'A320', nome: 'A320', modelo: 'Airbus A320', cia: 'avianca',
+    descricao: 'Somente voos internacionais', malhas: ['INTL'],
+    alt: 115, larg: 140, aceite: '140 × 115 cm', porta: '181 × 124 cm',
+    fonte: 'Manual Geral de Cargas, título 1, cap. 5, seção 7', fonteCurta: 'Manual Geral de Cargas',
+    poroes: {
+      FWD: { alturas: H320, faixas: FAIXAS_320, larguras: W320_FWD, linhas: T320_FWD, compr: 485, volume: 13 },
+      AFT: { alturas: H320, faixas: FAIXAS_320, larguras: W320_AFT, linhas: T320_AFT, compr: 979, volume: 24 },
+    },
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// PESO MÁXIMO POR VOLUME — por base de destino (padrão 200 kg)
+// Vale para todas as aeronaves, inclusive o A320
+// ═══════════════════════════════════════════════════════════════
+const PESO_PADRAO = 200;
+
+const AIRPORTS_INTL = [
+  { code: 'EZE', name: 'Ezeiza',                  city: 'Buenos Aires, Argentina',  max: 80 },
+  { code: 'AEP', name: 'Aeroparque',              city: 'Buenos Aires, Argentina',  max: 80 },
+  { code: 'COR', name: 'Córdoba',                 city: 'Córdoba, Argentina',       max: 80 },
+  { code: 'MDZ', name: 'Mendoza',                 city: 'Mendoza, Argentina',       max: 80 },
+  { code: 'ROS', name: 'Rosario',                 city: 'Rosario, Argentina',       max: 80 },
+  { code: 'MVD', name: 'Montevideo',              city: 'Montevidéu, Uruguai',      max: 150 },
+  { code: 'ASU', name: 'Assunção',                city: 'Assunção, Paraguai',       max: 200 },
+  { code: 'VVI', name: 'Santa Cruz de la Sierra', city: 'Santa Cruz, Bolívia',      max: 200 },
+  { code: 'BOG', name: 'Bogotá',                  city: 'Bogotá, Colômbia',         max: 200 },
+  { code: 'AUA', name: 'Aruba',                   city: 'Oranjestad, Aruba',        max: 200 },
+  { code: 'PUJ', name: 'Punta Cana',              city: 'Punta Cana, Rep. Dominicana', max: 200 },
+  { code: 'PBM', name: 'Paramaribo',              city: 'Paramaribo, Suriname',     max: 200 },
+];
+// Malha nacional: somente ARU, CAC e CZS têm restrição (80 kg/volume); as demais seguem 200 kg
+const AIRPORTS_NAC = [
+  { code: 'ARU', name: 'Araçatuba',       city: 'Araçatuba, SP',       max: 80 },
+  { code: 'CAC', name: 'Cascavel',        city: 'Cascavel, PR',        max: 80 },
+  { code: 'CZS', name: 'Cruzeiro do Sul', city: 'Cruzeiro do Sul, AC', max: 80 },
+];
+const MALHAS = {
+  INTL: { label: 'Internacional', lista: AIRPORTS_INTL, semBase: 'Sem restrição',          semBaseSub: 'Limite padrão por volume' },
+  NAC:  { label: 'Nacional',      lista: AIRPORTS_NAC,  semBase: 'Demais bases nacionais', semBaseSub: 'Sem restrição específica' },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════════════════════════
+const state = {
+  ac: '800',
+  cub_po: 'Dianteiro',
+  giro_po: 'Dianteiro',
+  ref_ac: '800',
+  malha: 'INTL',
+  airport: null,
+  alt: { chave: '', idx: 0, recusada: false, aplicada: null, lista: [] },
+};
+
+// Preferências do aparelho (tema e aeronave) — nunca obrigatórias
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sem armazenamento: segue sem salvar */ } },
+};
+
+const aeronave = id => FROTA[id || state.ac];
+const chavePorao = po => (po === 'Traseiro' ? 'AFT' : 'FWD');
+const porao = (po, id) => aeronave(id).poroes[chavePorao(po)];
+const poraoCub = () => porao(state.cub_po);
+const lim = () => { const a = aeronave(); return { alt: a.alt, larg: a.larg }; };
+const nomePorao = po => (po === 'Traseiro' ? 'porão traseiro' : 'porão dianteiro');
+const fmt = n => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+const maxLista = l => Math.max.apply(null, l);
+
+function getMaxPeso() {
+  const ap = getAirport();
+  return ap ? ap.max : PESO_PADRAO;
+}
+function getAirport() {
+  if (!state.airport) return null;
+  return MALHAS[state.malha].lista.find(a => a.code === state.airport) || null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONSULTA À TABELA
+// Medida entre valores tabelados: usa sempre a próxima altura e a
+// próxima largura ACIMA (ex.: B737 altura 40 → linha 41 · A320 altura 85 → faixa 71 a 97)
+// ═══════════════════════════════════════════════════════════════
+function faixa(p, alt, larg) {
+  const acima = (lista, v) => lista.filter(x => x >= v).sort((a, b) => a - b)[0];
+  return { h: alt > 0 ? acima(p.alturas, alt) : undefined, w: larg > 0 ? acima(p.larguras, larg) : undefined };
+}
+function valor(p, h, w) {
+  const linha = p.linhas[h];
+  const v = linha ? linha[p.larguras.indexOf(w)] : null;
+  return v === undefined ? null : v;
+}
+function maxTabela(p, alt, larg) {
+  const f = faixa(p, alt, larg);
+  return f.h === undefined || f.w === undefined ? null : valor(p, f.h, f.w);
+}
+const rotuloAlt = (p, h) => (p.faixas ? p.faixas[h] : String(h));
+const refGiro = (p, h, w) => (p.faixas ? `faixa ${p.faixas[h]}` : `A${h}`) + ` × L${w}`;
+
+// ═══════════════════════════════════════════════════════════════
+// CUBAGEM — avaliação das orientações
+// c = comprimento (entra no porão) · l = largura (atravessa a porta) · a = altura
+// ═══════════════════════════════════════════════════════════════
+function avaliarOrient(c, l, a) {
+  const L = lim();
+  const altOk = a > 0 && a <= L.alt;
+  const largOk = l > 0 && l <= L.larg;
+  const max = altOk && largOk ? maxTabela(poraoCub(), a, l) : null;
+  const compOk = max !== null && c <= max;
+  return { c, l, a, altOk, largOk, max, compOk, ok: altOk && largOk && compOk, folga: max !== null ? max - c : -Infinity };
+}
+
+// Carga como informada: a base gira livremente (C×L ou L×C); a altura não muda
+function avaliarEntrada(C, L, A) {
+  const e1 = avaliarOrient(C, L, A);
+  const e2 = avaliarOrient(L, C, A);
+  if (e1.ok) return { ev: e1, girada: false };
+  if (e2.ok) return { ev: e2, girada: true };
+  const usar2 = (e2.largOk && !e1.largOk) || (e1.largOk && e2.largOk && e2.folga > e1.folga);
+  return { ev: usar2 ? e2 : e1, girada: usar2 };
+}
+
+// Outras posições (deitar ou virar a carga), conferidas na tabela de giro.
+// perm = índices de [C, L, A] que vão para [comprimento, largura, altura]
+const EIXOS = ['x', 'y', 'z'];
+function buscarAlternativas(C, L, A) {
+  const d = [C, L, A], vistos = {}, lista = [];
+  [
+    [[0, 2, 1], [2, 0, 1]],   // a largura passa a ser a altura
+    [[2, 1, 0], [1, 2, 0]],   // o comprimento passa a ser a altura
+  ].forEach(grupo => {
+    for (let i = 0; i < grupo.length; i++) {
+      const p = grupo[i], ev = avaliarOrient(d[p[0]], d[p[1]], d[p[2]]);
+      if (!ev.ok) continue;
+      const chave = ev.c + 'x' + ev.l + 'x' + ev.a;
+      if (!vistos[chave]) { vistos[chave] = true; lista.push({ perm: p, ev }); }
+      break;
+    }
+  });
+  // Mais estável primeiro (menor altura), depois maior folga no comprimento
+  return lista.sort((x, y) => (x.ev.a - y.ev.a) || (y.ev.folga - x.ev.folga));
+}
+
+function statusCampos(C, Lg, A, ent) {
+  const L = lim(), ev = ent.ev, gira = ent.girada ? ', girada' : '';
+  const s = {};
+  s.a = ev.altOk ? { st: 'ok', txt: `até ${L.alt} cm` } : { st: 'err', txt: `acima de ${L.alt} cm` };
+  if (Math.min(C, Lg) > L.larg) {
+    s.c = { st: 'err', txt: `acima de ${L.larg} cm` };
+    s.l = { st: 'err', txt: `acima de ${L.larg} cm` };
+    return s;
+  }
+  const kLarg = ent.girada ? 'c' : 'l';   // lado que atravessa a porta
+  const kComp = ent.girada ? 'l' : 'c';   // lado que entra no porão
+  s[kLarg] = { st: 'ok', txt: `até ${L.larg} cm${gira}` };
+  if (ev.max !== null) s[kComp] = { st: ev.compOk ? 'ok' : 'err', txt: `máx. ${ev.max} cm${gira}` };
+  else if (ev.altOk)   s[kComp] = { st: 'err', txt: 'sem valor na tabela' };
+  else                 s[kComp] = { st: '', txt: 'depende da altura' };
+  return s;
+}
+
+function textoPeso(peso, maxPeso, ap) {
+  return ap
+    ? `Peso de ${fmt(peso)} kg passa do limite de ${maxPeso} kg para ${ap.code} (${ap.name})`
+    : `Peso de ${fmt(peso)} kg passa do limite de ${maxPeso} kg por volume`;
+}
+
+function errosEntrada(C, Lg, A, ent) {
+  const L = lim(), a = aeronave(), ev = ent.ev, e = [];
+  if (!ev.altOk) e.push(`Altura de ${fmt(A)} cm passa do limite de ${L.alt} cm`);
+  if (Math.min(C, Lg) > L.larg) {
+    e.push(`Base de ${fmt(C)} × ${fmt(Lg)} cm: os dois lados passam de ${L.larg} cm` +
+      (a.aceite ? ' (dimensão máxima para aceite)' : ' e não passam pela porta'));
+  } else if (ev.altOk && !ev.compOk) {
+    const p = poraoCub(), f = faixa(p, ev.a, ev.l);
+    e.push(ev.max === null
+      ? `A tabela de giro não tem valor para ${refGiro(p, f.h, f.w)}`
+      : `${ent.girada ? 'Lado' : 'Comprimento'} de ${fmt(ev.c)} cm passa do máximo de ${ev.max} cm (${refGiro(p, f.h, f.w)})`);
+  }
+  return e;
+}
+
+// ── Cálculo principal ─────────────────────────────────────────────
+function calcCub() {
+  const num = id => parseFloat($(id).value) || 0;
+  const comp = num('c-comp'), larg = num('c-larg'), alt = num('c-alt'), peso = num('c-peso');
+  const completo = comp > 0 && larg > 0 && alt > 0;
+  const a = aeronave(), L = lim();
+
+  const chave = [comp, larg, alt, state.ac, state.cub_po].join('|');
+  if (state.alt.chave !== chave) { state.alt.chave = chave; state.alt.idx = 0; state.alt.recusada = false; }
+
+  const ent = completo ? avaliarEntrada(comp, larg, alt) : null;
+  const apl = state.alt.aplicada;
+  if (apl && (!ent || !ent.ev.ok || apl.para.join('|') !== [comp, larg, alt].join('|'))) state.alt.aplicada = null;
+  const alts = ent && !ent.ev.ok ? buscarAlternativas(comp, larg, alt) : [];
+  state.alt.lista = alts;
+
+  const maxPeso = getMaxPeso(), ap = getAirport();
+  const pesoOk = peso > 0 && peso <= maxPeso;
+
+  // Indicadores por medida
+  if (completo) {
+    const s = statusCampos(comp, larg, alt, ent);
+    setChk('chk-comp', fmt(comp) + ' cm', s.c.st, s.c.txt);
+    setChk('chk-larg', fmt(larg) + ' cm', s.l.st, s.l.txt);
+    setChk('chk-alt',  fmt(alt)  + ' cm', s.a.st, s.a.txt);
+    estiloInput('c-comp', s.c.st); estiloInput('c-larg', s.l.st); estiloInput('c-alt', s.a.st);
+  } else {
+    const aSt = alt > 0 ? (alt <= L.alt ? 'ok' : 'err') : '';
+    setChk('chk-comp', comp > 0 ? fmt(comp) + ' cm' : '—', '', comp > 0 ? 'aguardando as medidas' : 'não informado');
+    setChk('chk-larg', larg > 0 ? fmt(larg) + ' cm' : '—', '', larg > 0 ? 'aguardando as medidas' : 'não informado');
+    setChk('chk-alt',  alt  > 0 ? fmt(alt)  + ' cm' : '—', aSt,
+      aSt === 'ok' ? `até ${L.alt} cm` : aSt === 'err' ? `acima de ${L.alt} cm` : 'não informado');
+    estiloInput('c-comp', ''); estiloInput('c-larg', ''); estiloInput('c-alt', aSt);
+  }
+  const pSt = peso > 0 ? (pesoOk ? 'ok' : 'err') : '';
+  setChk('chk-peso', peso > 0 ? fmt(peso) + ' kg' : '—', pSt,
+    pSt === 'ok' ? `até ${maxPeso} kg` : pSt === 'err' ? `acima de ${maxPeso} kg` : 'não informado');
+  estiloInput('c-peso', pSt);
+
+  renderCubGiro(ent, comp, larg, alt);
+
+  // Resultados, situação e veredito
+  let v;
+  if (completo) {
+    const cubado = Math.round(comp * larg * alt / 6000 * 1000) / 1000;
+    const taxado = Math.max(cubado, peso);
+    $('r-cubado').textContent = fmt(cubado);
+    $('r-bruto').textContent = peso > 0 ? fmt(peso) : '—';
+    $('r-taxado').textContent = fmt(taxado);
+
+    const erros = errosEntrada(comp, larg, alt, ent);
+    if (peso > maxPeso) erros.push(textoPeso(peso, maxPeso, ap));
+    const p = poraoCub(), f = faixa(p, ent.ev.a, ent.ev.l);
+    const giroTxt = ent.ev.ok ? `Comprimento máximo de ${ent.ev.max} cm (${refGiro(p, f.h, f.w)})` : '';
+
+    if (erros.length) {
+      if (!ent.ev.ok) erros.push(alts.length ? 'Há outra posição compatível: veja abaixo' : 'Nenhuma outra posição é compatível');
+      situacao('err', 'Carga incompatível', erros);
+      v = { cls: 'err', t: 'Incompatível', nl: 'Peso taxado', n: fmt(taxado) };
+    } else if (peso === 0) {
+      situacao('warn', 'Informe o peso bruto', [`Medidas compatíveis. ${giroTxt}`, `Peso cubado: ${fmt(cubado)} kg`, `Limite de peso: ${maxPeso} kg por volume`]);
+      v = { cls: 'warn', t: 'Falta o peso bruto', nl: 'Peso cubado', n: fmt(cubado) };
+    } else {
+      const det = [];
+      if (state.alt.aplicada) det.push('Posição alternativa aplicada');
+      else if (ent.girada) det.push(`Base girada: o lado de ${fmt(ent.ev.l)} cm passa pela porta`);
+      det.push(giroTxt, `Peso taxado: ${fmt(taxado)} kg`);
+      situacao('ok', 'Carga compatível', det);
+      v = { cls: 'ok', t: 'Compatível', nl: 'Peso taxado', n: fmt(taxado) };
+    }
+  } else {
+    $('r-cubado').textContent = '—';
+    $('r-bruto').textContent = peso > 0 ? fmt(peso) : '—';
+    $('r-taxado').textContent = '—';
+    if (peso > maxPeso) {
+      situacao('err', 'Peso incompatível', [textoPeso(peso, maxPeso, ap)]);
+      v = { cls: 'err', t: 'Peso acima do limite', nl: 'Peso taxado', n: '' };
+    } else {
+      situacao('', 'Preencha as medidas', [ap
+        ? `Destino ${ap.code} (${ap.name}): até ${maxPeso} kg por volume`
+        : 'Informe comprimento, largura e altura do volume']);
+      v = { cls: '', t: 'Preencha as medidas', nl: 'Peso taxado', n: '' };
+    }
+  }
+  v.s = `${a.nome}, ${nomePorao(state.cub_po)}` + (ap ? `, destino ${ap.code}` : '');
+  renderVeredito(v);
+  renderAlt({ C: comp, L: larg, A: alt, peso, maxPeso, ap, ent, alts });
+}
+
+function setChk(id, valorTxt, st, sub) {
+  const el = $(id);
+  el.className = 'chk' + (st === 'ok' || st === 'err' ? ' ' + st : '');
+  el.querySelector('.chk-v').textContent = valorTxt;
+  el.querySelector('.chk-s').textContent = sub;
+}
+function estiloInput(id, st) {
+  const el = $(id);
+  el.classList.toggle('ok', st === 'ok');
+  el.classList.toggle('err', st === 'err');
+}
+
+const ICONE_SITUACAO = { ok: 'i-check', err: 'i-x', warn: 'i-alert', '': 'i-box' };
+function situacao(cls, titulo, itens) {
+  $('cub-status').className = 'status' + (cls ? ' ' + cls : '');
+  $('st-ic').innerHTML = `<svg class="ic"><use href="#${ICONE_SITUACAO[cls]}"/></svg>`;
+  $('st-t').textContent = titulo;
+  $('st-l').innerHTML = itens.filter(Boolean).map(t => `<li>${t}</li>`).join('');
+}
+
+function renderVeredito(v) {
+  $('verdict').className = 'verdict' + (v.cls ? ' ' + v.cls : '');
+  $('v-t').textContent = v.t;
+  $('v-s').textContent = v.s;
+  $('v-nl').textContent = v.nl;
+  $('v-nv').innerHTML = v.n ? `${v.n}<small>kg</small>` : '—';
+}
+
+// Cartão "Comprimento máximo pela tabela de giro"
+function renderCubGiro(ent, C, Lg, A) {
+  const box = $('cub-giro'), maxEl = $('cg-max'), det = $('cg-d');
+  const a = aeronave(), p = poraoCub(), L = lim();
+  const tag = `<span class="tag">${a.nome} ${chavePorao(state.cub_po)}</span>`;
+  if (!ent) {
+    box.className = 'gref'; maxEl.textContent = '—';
+    det.innerHTML = tag + 'Informe as três medidas para consultar';
+    return;
+  }
+  const ev = ent.ev;
+  if (ev.max === null) {
+    box.className = 'gref err'; maxEl.textContent = 'N/D';
+    let msg;
+    if (!ev.altOk) msg = `Altura de ${fmt(A)} cm fica fora da tabela (máx. ${L.alt} cm)`;
+    else if (Math.min(C, Lg) > L.larg) msg = `Os dois lados da base passam de ${L.larg} cm`;
+    else { const f = faixa(p, ev.a, ev.l); msg = `Sem valor na tabela para ${refGiro(p, f.h, f.w)}`; }
+    det.innerHTML = tag + msg;
+    return;
+  }
+  const f = faixa(p, ev.a, ev.l);
+  const nomeLim = ent.girada ? 'Largura' : 'Comprimento';
+  const nomeCol = ent.girada ? 'comprimento' : 'largura';
+  box.className = 'gref ' + (ev.compOk ? 'ok' : 'err');
+  maxEl.innerHTML = `${ev.max}<small>cm</small>`;
+  const tAlt = p.faixas
+    ? `altura de ${fmt(ev.a)} cm na faixa ${p.faixas[f.h]}`
+    : (f.h === ev.a ? `altura na linha ${f.h}` : `altura de ${fmt(ev.a)} cm usa a linha ${f.h}`);
+  const tCol = f.w === ev.l ? `${nomeCol} na coluna ${f.w}` : `${nomeCol} de ${fmt(ev.l)} cm usa a coluna ${f.w}`;
+  det.innerHTML = `${tag}${tAlt}; ${tCol}.<br><b>${nomeLim} de ${fmt(ev.c)} cm ${ev.compOk ? 'dentro do' : 'acima do'} limite</b>` +
+    (ent.girada ? ' (peça girada)' : '');
+}
+
+function limparCub() {
+  ['c-comp', 'c-larg', 'c-alt', 'c-peso'].forEach(id => { $(id).value = ''; });
+  state.alt.aplicada = null;
+  calcCub();
+  $('c-comp').focus();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DESENHO ISOMÉTRICO DA CAIXA  (x = comprimento · y = largura · z = altura)
+// ═══════════════════════════════════════════════════════════════
+const COS30 = Math.cos(Math.PI / 6);
+const PILL_FS = 11, PILL_H = 17;
+const f1 = n => String(Math.round(n * 10) / 10);
+const pillW = t => t.length * PILL_FS * 0.6 + 12;
+
+function pillSVG(cx, cy, txt, st, cresce) {
+  const w = pillW(txt), x = cx - w / 2, y = cy - PILL_H / 2;
+  cresce(x, y); cresce(x + w, y + PILL_H);
+  return `<g class="pill ${st || 'neu'}"><rect x="${f1(x)}" y="${f1(y)}" width="${f1(w)}" height="${PILL_H}" rx="8.5"/>` +
+         `<text x="${f1(cx)}" y="${f1(cy + 4)}" text-anchor="middle">${txt}</text></g>`;
+}
+
+function caixaSVG(b, k, ox, oy, cresce) {
+  const c = b.c, l = b.l, a = b.a, LA = lim().alt;
+  const P = (x, y, z) => [ox + (x - y) * COS30 * k, oy + (x + y) / 2 * k - z * k];
+  const pts = arr => arr.map(p => { cresce(p[0], p[1]); return f1(p[0]) + ',' + f1(p[1]); }).join(' ');
+  const meio = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+  let s = '';
+
+  // Faces visíveis: lateral esquerda (C × A), lateral direita (L × A) e topo (C × L)
+  s += `<polygon class="bxf bx-esq ${b.tom}" points="${pts([P(0, l, 0), P(c, l, 0), P(c, l, a), P(0, l, a)])}"/>`;
+  s += `<polygon class="bxf bx-dir ${b.tom}" points="${pts([P(c, 0, 0), P(c, l, 0), P(c, l, a), P(c, 0, a)])}"/>`;
+  s += `<polygon class="bxf bx-top ${b.tom}" points="${pts([P(0, 0, a), P(c, 0, a), P(c, l, a), P(0, l, a)])}"/>`;
+
+  // Fita = topo original da caixa (mostra para onde o topo vai ao deitar)
+  if (b.fita) {
+    const ext = { x: c, y: l, z: a }, t = b.fita.topo, r = b.fita.corre;
+    const o = EIXOS.filter(e => e !== t && e !== r)[0];
+    const v0 = ext[o] * 0.4, v1 = ext[o] * 0.6;
+    const q = (u, v) => { const p = { x: 0, y: 0, z: 0 }; p[t] = ext[t]; p[r] = u; p[o] = v; return P(p.x, p.y, p.z); };
+    s += `<polygon class="fita" points="${pts([q(0, v0), q(ext[r], v0), q(ext[r], v1), q(0, v1)])}"/>`;
+  }
+
+  // Linha do limite de altura
+  if (a > LA) {
+    const p = [P(0, l, LA), P(c, l, LA), P(c, 0, LA)];
+    s += `<polyline class="limite" points="${pts(p)}"/>`;
+    s += `<text class="limite-t" x="${f1(p[2][0] + 4)}" y="${f1(p[2][1] + 3)}">${LA}</text>`;
+    cresce(p[2][0] + 24, p[2][1] + 4);
+  }
+
+  // Medidas, por fora das arestas
+  const tc = 'C ' + fmt(c), tl = 'L ' + fmt(l), ta = 'A ' + fmt(a);
+  const afast = t => 0.5 * pillW(t) / 2 + COS30 * PILL_H / 2 + 3;
+  let m = meio(P(0, l, 0), P(c, l, 0)), d = afast(tc);
+  const pc = [m[0] - 0.5 * d, m[1] + COS30 * d];
+  m = meio(P(c, l, 0), P(c, 0, 0)); d = afast(tl);
+  const pl = [m[0] + 0.5 * d, m[1] + COS30 * d];
+  const e0 = P(0, l, 0), e1 = P(0, l, a);
+  const pa = [e0[0] - 6 - pillW(ta) / 2, (e0[1] + e1[1]) / 2];
+  if (Math.abs(pa[0] - pc[0]) < (pillW(ta) + pillW(tc)) / 2 + 2 && Math.abs(pa[1] - pc[1]) < PILL_H + 2)
+    pa[1] = pc[1] - PILL_H - 3;   // evita sobrepor altura e comprimento
+  s += pillSVG(pc[0], pc[1], tc, b.st.c, cresce);
+  s += pillSVG(pl[0], pl[1], tl, b.st.l, cresce);
+  s += pillSVG(pa[0], pa[1], ta, b.st.a, cresce);
+  return s;
+}
+
+// Uma ou duas caixas lado a lado, na mesma escala
+function svgCaixas(caixas) {
+  const dois = caixas.length > 1;
+  const geo = caixas.map(b => ({ w: (b.c + b.l) * COS30, h: (b.c + b.l) / 2 + b.a }));
+  const hMax = Math.max.apply(null, geo.map(g => g.h));
+  const k = Math.min((dois ? 175 : 225) / geo.reduce((s, g) => s + g.w, 0), (dois ? 115 : 150) / hMax);
+  const topo = -hMax * k;
+  const bb = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+  const cresce = (x, y) => {
+    bb.x0 = Math.min(bb.x0, x); bb.y0 = Math.min(bb.y0, y);
+    bb.x1 = Math.max(bb.x1, x); bb.y1 = Math.max(bb.y1, y);
+  };
+  let s = '', cursor = 0;
+  caixas.forEach((b, i) => {
+    const ox = cursor + pillW('A ' + fmt(b.a)) + 8 + b.l * COS30 * k;
+    const oy = -(b.c + b.l) / 2 * k;            // canto da frente apoiado em y = 0
+    s += caixaSVG(b, k, ox, oy, cresce);
+    const cx = ox + (b.c - b.l) * COS30 * k / 2;
+    s += `<text class="cap ${b.tom}" x="${f1(cx)}" y="${f1(topo - 12)}" text-anchor="middle">${b.rotulo}</text>`;
+    cresce(cx - b.rotulo.length * 4, topo - 26);
+    cresce(cx + b.rotulo.length * 4, topo - 6);
+    cursor = bb.x1;
+    if (i < caixas.length - 1) {                // seta entre as caixas
+      const ax = cursor + 8, ay = topo / 2;
+      s += `<path class="seta" d="M${f1(ax)} ${f1(ay)}h26m-7 -6l7 6l-7 6"/>`;
+      cursor = ax + 26 + 8;
+      cresce(cursor, ay);
+    }
+  });
+  const mg = 4;
+  return `<svg class="alt-svg" viewBox="${f1(bb.x0 - mg)} ${f1(bb.y0 - mg)} ${f1(bb.x1 - bb.x0 + 2 * mg)} ${f1(bb.y1 - bb.y0 + 2 * mg)}" role="img" aria-label="Desenho da caixa">${s}</svg>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CARTÃO DE POSIÇÃO ALTERNATIVA
+// ═══════════════════════════════════════════════════════════════
+const NOME_LADO = ['o comprimento', 'a largura', 'a altura'];
+
+function dimsHTML(d, mudou) {
+  return ['C', 'L', 'A'].map((n, i) =>
+    `<span${mudou && mudou[i] ? ' class="mud"' : ''}>${n} ${fmt(d[i])}</span>`).join(' × ') + ' cm';
+}
+function legendaHTML(limite) {
+  return `<div class="legend"><span><i class="fita"></i>fita = topo original da caixa</span>` +
+         (limite ? `<span><i class="lim"></i>limite de ${lim().alt} cm</span>` : '') + `</div>`;
+}
+
+function renderAlt(cx) {
+  const el = $('alt-card');
+  const ap = state.alt.aplicada;
+  const a = aeronave();
+
+  // Alternativa aplicada: mostra como a carga fica, com opção de desfazer
+  if (ap && cx.ent && cx.ent.ev.ok) {
+    const ev = cx.ent.ev;
+    el.className = 'alt done';
+    el.innerHTML =
+      `<div class="alt-h"><svg class="ic"><use href="#i-check"/></svg>Posição ajustada</div>` +
+      `<div class="alt-draw">` +
+        svgCaixas([{ c: ev.c, l: ev.l, a: ev.a, tom: 'ok', rotulo: 'Como fica',
+                     st: { c: 'ok', l: 'ok', a: 'ok' },
+                     fita: { topo: EIXOS[ap.perm.indexOf(2)], corre: EIXOS[ap.perm.indexOf(0)] } }]) +
+        legendaHTML(false) +
+      `</div>` +
+      `<div class="alt-b">` +
+        `<div class="alt-row"><span>Antes</span><span class="dims off">${dimsHTML(ap.de)}</span></div>` +
+        `<div class="alt-row"><span>Agora</span><span class="dims">${dimsHTML(ap.para, ap.para.map((v, i) => v !== ap.de[i]))}</span></div>` +
+        `<button class="btn full" onclick="desfazerAlt()"><svg class="ic"><use href="#i-undo"/></svg>Desfazer</button>` +
+      `</div>`;
+    el.hidden = false;
+    return;
+  }
+
+  if (!cx.ent || cx.ent.ev.ok || !cx.alts.length) { el.hidden = true; el.innerHTML = ''; return; }
+
+  const n = cx.alts.length, idx = state.alt.idx % n, alt = cx.alts[idx];
+  const de = [cx.C, cx.L, cx.A], para = [alt.ev.c, alt.ev.l, alt.ev.a];
+
+  // Sugestão recusada: fica só um lembrete compacto
+  if (state.alt.recusada) {
+    el.className = 'alt';
+    el.innerHTML = `<div class="alt-mini"><span class="t">Há outra posição compatível<span class="dims">${dimsHTML(para)}</span></span>` +
+                   `<button class="btn" onclick="reverAlt()">Rever</button></div>`;
+    el.hidden = false;
+    return;
+  }
+
+  const s = statusCampos(cx.C, cx.L, cx.A, cx.ent);
+  const p = poraoCub(), f = faixa(p, alt.ev.a, alt.ev.l);
+  const verbo = para[2] < cx.A ? 'Deitar a carga' : 'Virar a carga';
+  el.className = 'alt';
+  el.innerHTML =
+    `<div class="alt-h"><svg class="ic"><use href="#i-bulb"/></svg>Outra posição compatível` +
+      (n > 1 ? `<button class="alt-nav" onclick="outraAlt()" aria-label="Ver a próxima opção (${idx + 1} de ${n})">${idx + 1} de ${n}<svg class="ic"><use href="#i-chev"/></svg></button>` : '') +
+    `</div>` +
+    `<div class="alt-draw">` +
+      svgCaixas([
+        { c: cx.C, l: cx.L, a: cx.A, tom: 'err', rotulo: 'Atual',
+          st: { c: s.c.st, l: s.l.st, a: s.a.st }, fita: { topo: 'z', corre: 'x' } },
+        { c: para[0], l: para[1], a: para[2], tom: 'ok', rotulo: 'Alternativa',
+          st: { c: 'ok', l: 'ok', a: 'ok' },
+          fita: { topo: EIXOS[alt.perm.indexOf(2)], corre: EIXOS[alt.perm.indexOf(0)] } },
+      ]) +
+      legendaHTML(cx.A > lim().alt) +
+    `</div>` +
+    `<div class="alt-b">` +
+      `<div class="alt-row"><span>Atual</span><span class="dims off">${dimsHTML(de)}</span></div>` +
+      `<div class="alt-row"><span>Alternativa</span><span class="dims">${dimsHTML(para, para.map((v, i) => v !== de[i]))}</span></div>` +
+      `<p class="alt-note">${verbo}: ${NOME_LADO[alt.perm[2]]} de ${fmt(de[alt.perm[2]])} cm passa a ser a altura. ` +
+        `Comprimento máximo de ${alt.ev.max} cm na tabela de giro (${refGiro(p, f.h, f.w)}, ${a.nome} ${nomePorao(state.cub_po)}).</p>` +
+      (cx.peso > cx.maxPeso
+        ? `<div class="warnbox err"><svg class="ic"><use href="#i-x"/></svg><span>Mesmo nesta posição a carga segue incompatível pelo peso: ${fmt(cx.peso)} kg, limite de ${cx.maxPeso} kg${cx.ap ? ' para ' + cx.ap.code : ''}.</span></div>`
+        : '') +
+      `<p class="alt-q">Gostaria de seguir com esta alternativa?</p>` +
+      `<div class="alt-acts">` +
+        `<button class="btn" onclick="manterAlt()">Manter atual</button>` +
+        `<button class="btn pri" onclick="seguirAlt()"><svg class="ic"><use href="#i-check"/></svg>Seguir</button>` +
+      `</div>` +
+      `<div class="warnbox"><svg class="ic"><use href="#i-alert"/></svg><span>Antes de seguir, confirme se a carga pode ser deitada: setas de “este lado para cima”, frágil, líquidos.</span></div>` +
+    `</div>`;
+  el.hidden = false;
+}
+
+function seguirAlt() {
+  const lista = state.alt.lista;
+  if (!lista.length) return;
+  const alt = lista[state.alt.idx % lista.length];
+  const ids = ['c-comp', 'c-larg', 'c-alt'];
+  const de = ids.map(id => parseFloat($(id).value) || 0);
+  const para = [alt.ev.c, alt.ev.l, alt.ev.a];
+  ids.forEach((id, i) => { $(id).value = para[i]; });
+  state.alt.aplicada = { de, para, perm: alt.perm };
+  calcCub();
+}
+function desfazerAlt() {
+  const ap = state.alt.aplicada;
+  if (!ap) return;
+  ['c-comp', 'c-larg', 'c-alt'].forEach((id, i) => { $(id).value = ap.de[i]; });
+  state.alt.aplicada = null;
+  calcCub();
+}
+function manterAlt() { state.alt.recusada = true;  calcCub(); }
+function reverAlt()  { state.alt.recusada = false; calcCub(); }
+function outraAlt()  { state.alt.idx++;            calcCub(); }
+
+// ═══════════════════════════════════════════════════════════════
+// TABELA DE GIRO — consulta e tabelas completas
+// ═══════════════════════════════════════════════════════════════
+function lookupGiro() {
+  const altIn = parseFloat($('g-alt').value), largIn = parseFloat($('g-larg').value);
+  const res = $('g-result'), note = $('g-note');
+  const a = aeronave(), p = porao(state.giro_po);
+  const setNota = (txt, cls) => { note.textContent = txt; note.className = 'lk-note' + (cls ? ' ' + cls : ''); };
+
+  if (!altIn || !largIn) {
+    res.textContent = '—'; res.className = 'v na';
+    setNota('Informe altura e largura', '');
+    renderGiroTable();
+    return;
+  }
+  const f = faixa(p, altIn, largIn);
+  if (f.h === undefined || f.w === undefined) {
+    res.textContent = '—'; res.className = 'v na';
+    setNota(f.h === undefined
+      ? `Altura de ${fmt(altIn)} cm acima do limite da tabela (${maxLista(p.alturas)} cm)`
+      : `Largura de ${fmt(largIn)} cm acima do limite da tabela (${maxLista(p.larguras)} cm)`, 'err');
+  } else {
+    const v = valor(p, f.h, f.w);
+    if (v) { res.textContent = v; res.className = 'v'; res.classList.add('pop'); setTimeout(() => res.classList.remove('pop'), 300); }
+    else   { res.textContent = 'N/D'; res.className = 'v na'; }
+    const tAlt = p.faixas ? `Altura de ${fmt(altIn)} cm na faixa ${p.faixas[f.h]}`
+      : (f.h === altIn ? `Altura ${fmt(altIn)}` : `Altura ${fmt(altIn)} usa a linha ${f.h}`);
+    const tLarg = f.w === largIn ? `largura ${fmt(largIn)}` : `largura ${fmt(largIn)} usa a coluna ${f.w}`;
+    let txt = `${tAlt}, ${tLarg}` + (v ? '' : '. Célula sem valor na tabela');
+    let cls = (p.faixas || f.h !== altIn || f.w !== largIn) ? 'adj' : '';
+    if (a.aceite && largIn > a.larg) {
+      txt += `. Atenção: acima de ${a.larg} cm a carga passa da dimensão máxima para aceite (${a.aceite})`;
+      cls = 'warn';
+    }
+    setNota(txt, cls);
+  }
+  renderGiroTable(altIn, largIn);
+}
+
+function buildTable(el, p, a, hiH, hiW) {
+  const f = faixa(p, hiH || 0, hiW || 0);
+  const hOn = hiH ? f.h : undefined, wOn = hiW ? f.w : undefined;
+  const fora = w => !!a.aceite && w > a.larg;
+  let h = `<thead><tr><th scope="col">Alt. \\ Larg.</th>`;
+  p.larguras.forEach(w => {
+    const cls = [w === wOn ? 'col-on' : '', fora(w) ? 'fora' : ''].filter(Boolean).join(' ');
+    h += `<th scope="col"${cls ? ` class="${cls}"` : ''}>${w}</th>`;
+  });
+  h += '</tr></thead><tbody>';
+  p.alturas.forEach(alt => {
+    const on = alt === hOn;
+    h += `<tr${on ? ' class="row-on"' : ''}><th scope="row">${rotuloAlt(p, alt)}</th>`;
+    p.linhas[alt].forEach((v, i) => {
+      const w = p.larguras[i];
+      const cls = [v === null ? 'na' : '', v !== null && v >= 600 ? 'hi' : '', fora(w) ? 'fora' : '', on && w === wOn ? 'cell-on' : '']
+        .filter(Boolean).join(' ');
+      h += `<td${cls ? ` class="${cls}"` : ''}>${v === null ? '—' : v}</td>`;
+    });
+    h += '</tr>';
+  });
+  el.innerHTML = h + '</tbody>';
+}
+
+function chipsPorao(p, a) {
+  if (p.compr) {
+    return `<span class="chip">Porta <b>${a.porta}</b></span>` +
+           `<span class="chip">Aceite até <b>${a.aceite}</b></span>` +
+           `<span class="chip">Compartimento <b>${p.compr} cm</b></span>` +
+           `<span class="chip">Volume útil <b>${p.volume} m³</b></span>`;
+  }
+  return `<span class="chip">Altura até <b>${a.alt} cm</b></span><span class="chip">Largura até <b>${a.larg} cm</b></span>`;
+}
+function rodapeTabela(a) {
+  return 'Valores em cm. “—” indica combinação não aplicável. ' +
+    (a.aceite ? `Colunas hachuradas passam da dimensão máxima para aceite (${a.larg} cm de largura). ` : '') +
+    `Fonte: ${a.fonte}.`;
+}
+
+// Dica de rolagem lateral, só quando a tabela não cabe na tela
+function dicaRolagem(dicaId, tabelaId, p) {
+  const box = $(tabelaId).parentElement, dica = $(dicaId);
+  const sobra = box.scrollWidth > box.clientWidth + 2;
+  dica.hidden = !sobra;
+  if (sobra) dica.querySelector('span').textContent = `Deslize a tabela para ver as larguras até ${maxLista(p.larguras)} cm`;
+}
+
+// Leva a coluna destacada para o centro da área visível
+function centralizarDestaque(tabelaId) {
+  const tab = $(tabelaId), box = tab.parentElement;
+  const cel = tab.querySelector('td.cell-on') || tab.querySelector('thead th.col-on');
+  if (!cel || !box.clientWidth) return;
+  const fixo = (tab.querySelector('tbody th') || { offsetWidth: 0 }).offsetWidth;
+  const rb = box.getBoundingClientRect(), rc = cel.getBoundingClientRect();
+  box.scrollLeft += (rc.left + rc.width / 2) - (rb.left + fixo + (rb.width - fixo) / 2);
+}
+
+function renderGiroTable(hiH, hiW) {
+  const a = aeronave(), p = porao(state.giro_po);
+  buildTable($('giro-table'), p, a, hiH, hiW);
+  $('giro-chips').innerHTML = chipsPorao(p, a);
+  $('giro-foot').textContent = rodapeTabela(a);
+  dicaRolagem('giro-dica', 'giro-table', p);
+  if (hiH || hiW) centralizarDestaque('giro-table'); else $('giro-tbl').scrollLeft = 0;
+}
+
+function renderRefTables() {
+  const a = aeronave(state.ref_ac);
+  buildTable($('ref-fwd-table'), a.poroes.FWD, a);
+  buildTable($('ref-aft-table'), a.poroes.AFT, a);
+  $('ref-fwd-chips').innerHTML = chipsPorao(a.poroes.FWD, a);
+  $('ref-aft-chips').innerHTML = chipsPorao(a.poroes.AFT, a);
+  $('ref-foot').textContent = rodapeTabela(a);
+  dicaRolagem('ref-fwd-dica', 'ref-fwd-table', a.poroes.FWD);
+  dicaRolagem('ref-aft-dica', 'ref-aft-table', a.poroes.AFT);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INÍCIO — aeronave ativa, desenho dos porões e limites
+// ═══════════════════════════════════════════════════════════════
+function desenharAviao() {
+  const a = aeronave(), F = a.poroes.FWD, T = a.poroes.AFT;
+  const info = p => (p.compr ? `${p.compr} cm, ${p.volume} m³` : '');
+  const extra = !!F.compr;
+  const svg = $('plane');
+  svg.setAttribute('viewBox', `0 0 340 ${extra ? 122 : 108}`);
+  svg.innerHTML =
+    `<path class="wing" d="M290 49 L325 43.5 L333 45.5 L306 53.5 Z"/>` +
+    `<path class="fin" d="M254 43 L295 7 L313 7 L322 41 Z"/>` +
+    `<path class="fus" d="M14 60 C14.6 50.5 28 43 50 43 L292 43 L327 38.5 L328.5 45 C302 55 270 73 240 73 L50 73 C29 73 14.6 68.5 14 60 Z"/>` +
+    `<path class="cock" d="M23.5 53.5 L32.5 48.8 L40 48.8 L40 53.5 Z"/>` +
+    `<line class="win" x1="57" y1="51.5" x2="252" y2="51.5"/>` +
+    `<line class="floor" x1="38" y1="60" x2="292" y2="60"/>` +
+    `<rect class="hold" x="56" y="61.6" width="62" height="9.8" rx="3"/>` +
+    `<rect class="hold" x="170" y="61.6" width="86" height="9.8" rx="3"/>` +
+    `<path class="wing" d="M118 70.5 L178 70.5 L196 79 L134 79 Z"/>` +
+    `<rect class="eng" x="96" y="74.5" width="44" height="13.5" rx="6.75"/>` +
+    `<line class="lead" x1="87" y1="72" x2="87" y2="92"/>` +
+    `<line class="lead" x1="213" y1="72" x2="213" y2="92"/>` +
+    `<text class="lbl" x="87" y="105" text-anchor="middle">Dianteiro</text>` +
+    `<text class="lbl" x="213" y="105" text-anchor="middle">Traseiro</text>` +
+    (extra ? `<text class="lbl2" x="87" y="119" text-anchor="middle">${info(F)}</text>` +
+             `<text class="lbl2" x="213" y="119" text-anchor="middle">${info(T)}</text>` : '');
+}
+
+function renderHome() {
+  const a = aeronave();
+  $('hero-ac').textContent = a.modelo;
+  $('hero-m').textContent = a.cia === 'avianca'
+    ? 'Frota Avianca, somente voos internacionais'
+    : 'Frota GOL, voos nacionais e internacionais';
+  desenharAviao();
+  const linhas = [
+    ['Altura máxima', `${a.alt} cm`],
+    ['Base, menor lado', `até ${a.larg} cm`],
+    a.aceite ? ['Dimensão máxima para aceite', a.aceite] : null,
+    a.porta ? ['Porta de carga', a.porta] : null,
+    ['Comprimento máximo', 'Pela tabela de giro'],
+    ['Medida entre valores da tabela', 'Usa o valor acima'],
+    ['Peso por volume', `até ${PESO_PADRAO} kg, varia por destino`],
+    ['Cubagem', 'C × L × A ÷ 6.000'],
+    ['Peso taxado', 'O maior entre cubado e bruto'],
+    ['Se a carga não couber', 'O app sugere outra posição'],
+    ['Fonte', a.fonte],
+  ].filter(Boolean);
+  $('facts').innerHTML = `<h2 class="facts-h">Limites do ${a.nome}</h2>` +
+    linhas.map(([k, v]) => `<div class="fact"><span>${k}</span><span>${v}</span></div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SELEÇÕES: aeronave, porão, malha, destino
+// ═══════════════════════════════════════════════════════════════
+function marcarSeg(id, v) {
+  document.querySelectorAll(`#${id} .seg-btn`).forEach(b => b.classList.toggle('on', b.dataset.v === v));
+}
+
+function renderAcSheet() {
+  $('ac-list').innerHTML = ORDEM_FROTA.map(id => FROTA[id]).map(a => {
+    const c = CIAS[a.cia];
+    return `<button class="opt${a.id === state.ac ? ' sel' : ''}" onclick="selectAc('${a.id}')">` +
+      `<span class="badge sm" style="--brand:${c.cor}">${c.selo}</span>` +
+      `<span class="opt-txt"><span class="opt-m">${a.modelo}</span><span class="opt-s">${a.descricao}</span></span>` +
+      `<svg class="ic opt-chk"><use href="#i-check"/></svg></button>`;
+  }).join('');
+}
+
+function selectAc(id) {
+  if (!FROTA[id]) return;
+  state.ac = id;
+  state.ref_ac = id;
+  store.set('ct-aeronave', id);
+  fecharSheets();
+  aplicarAeronave(true);
+}
+
+function aplicarAeronave(avisar) {
+  const a = aeronave();
+  document.documentElement.setAttribute('data-carrier', a.cia);
+  carregarLogo(a.cia);
+  $('hdr-ac').textContent = a.nome;
+  $('hdr-src').textContent = a.fonteCurta;
+
+  // A320 da Avianca: somente malha internacional
+  if (!a.malhas.includes(state.malha)) {
+    state.malha = a.malhas[0];
+    state.airport = null;
+    if (avisar) toast(`${a.modelo}: somente voos internacionais. Destino ajustado para internacional.`);
+  }
+  atualizarMalha();
+  renderHome();
+  renderAcSheet();
+  marcarSeg('ref-ac-seg', state.ref_ac);
+  renderRefTables();
+  lookupGiro();
+  calcCub();
+}
+
+function setPo(po) { state.cub_po = po; marcarSeg('cub-po-seg', po); calcCub(); }
+function setGiroPo(po) { state.giro_po = po; marcarSeg('giro-po-seg', po); lookupGiro(); }
+function setRefAc(id) { state.ref_ac = id; marcarSeg('ref-ac-seg', id); renderRefTables(); }
+
+function setMalha(m) {
+  if (!aeronave().malhas.includes(m)) return;
+  state.malha = m;
+  state.airport = null;   // limpa a base ao trocar de malha
+  atualizarMalha();
+  calcCub();
+}
+
+function atualizarMalha() {
+  const a = aeronave(), unica = a.malhas.length === 1;
+  document.querySelectorAll('#malha-seg .seg-btn').forEach(b => {
+    const ok = a.malhas.includes(b.dataset.v);
+    b.disabled = !ok;
+    b.classList.toggle('on', b.dataset.v === state.malha);
+    const cad = b.querySelector('.lock');
+    if (cad) cad.hidden = ok;
+  });
+  $('malha-note').hidden = !unica;
+  $('malha-note-t').textContent = unica ? `${a.modelo} da ${CIAS[a.cia].nome}: somente voos internacionais.` : '';
+  refreshAirportPicker();
+}
+
+function refreshAirportPicker() {
+  const m = MALHAS[state.malha], ap = getAirport();
+  $('airport-picker').classList.toggle('set', !!ap);
+  $('ap-l').textContent = `Aeroporto de destino, malha ${m.label.toLowerCase()}`;
+  $('ap-ic').innerHTML = `<svg class="ic"><use href="#${ap ? 'i-pin' : 'i-globe'}"/></svg>`;
+  $('ap-v').innerHTML = ap ? `<b>${ap.code}</b>${ap.name}, até ${ap.max} kg` : `${m.semBase}, até ${PESO_PADRAO} kg`;
+}
+
+const classeKg = max => (max <= 80 ? 'low' : max <= 150 ? 'mid' : 'std');
+
+function renderAirportSheet() {
+  const m = MALHAS[state.malha];
+  $('airport-sheet-t').textContent = `Destino, malha ${m.label.toLowerCase()}`;
+  let h = `<button class="opt${state.airport === null ? ' sel' : ''}" onclick="selectAirport(null)">` +
+    `<span class="code"><svg class="ic"><use href="#i-globe"/></svg></span>` +
+    `<span class="opt-txt"><span class="opt-m">${m.semBase}</span><span class="opt-s">${m.semBaseSub}</span></span>` +
+    `<span class="kg std">${PESO_PADRAO} kg</span><svg class="ic opt-chk"><use href="#i-check"/></svg></button>`;
+  m.lista.forEach(ap => {
+    h += `<button class="opt${state.airport === ap.code ? ' sel' : ''}" onclick="selectAirport('${ap.code}')">` +
+      `<span class="code">${ap.code}</span>` +
+      `<span class="opt-txt"><span class="opt-m">${ap.name}</span><span class="opt-s">${ap.city}</span></span>` +
+      `<span class="kg ${classeKg(ap.max)}">${ap.max} kg</span><svg class="ic opt-chk"><use href="#i-check"/></svg></button>`;
+  });
+  if (state.malha === 'NAC') {
+    h += `<p class="sheet-foot">Na malha nacional, só ARU, CAC e CZS têm restrição de 80 kg por volume. As demais bases seguem o limite padrão de ${PESO_PADRAO} kg.</p>`;
+  }
+  $('airport-list').innerHTML = h;
+}
+function abrirAeroportos() { renderAirportSheet(); abrirSheet('airport-sheet'); }
+function selectAirport(code) {
+  state.airport = code;
+  refreshAirportPicker();
+  fecharSheets();
+  calcCub();
+}
+
+function abrirSheet(id) { $(id).classList.add('on'); }
+function fecharSheets() { document.querySelectorAll('.ov.on').forEach(o => o.classList.remove('on')); }
+function fecharSheet(e) { if (e.target.classList.contains('ov')) fecharSheets(); }
+
+// ═══════════════════════════════════════════════════════════════
+// NAVEGAÇÃO
+// ═══════════════════════════════════════════════════════════════
+function goScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === 'screen-' + id));
+  document.querySelectorAll('.nb').forEach(b => b.classList.toggle('on', b.id === 'nb-' + id));
+  if (id === 'giro') renderGiroTable(parseFloat($('g-alt').value) || 0, parseFloat($('g-larg').value) || 0);
+  if (id === 'ref') renderRefTables();
+  if (id === 'cubagem' && !$('c-comp').value) $('c-comp').focus({ preventScroll: true });
+}
+function irPara(id) {
+  const el = $(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TEMA CLARO / ESCURO
+// ═══════════════════════════════════════════════════════════════
+function aplicarTema(t, salvar) {
+  document.documentElement.setAttribute('data-theme', t);
+  $('theme-btn').setAttribute('aria-label', t === 'dark' ? 'Usar tema claro' : 'Usar tema escuro');
+  if (salvar) store.set('ct-tema', t);
+}
+function alternarTema() {
+  aplicarTema(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark', true);
+}
+// Sem escolha salva, acompanha o tema do celular
+if (window.matchMedia) {
+  const mq = window.matchMedia('(prefers-color-scheme: light)');
+  const seguir = e => { if (!store.get('ct-tema')) aplicarTema(e.matches ? 'light' : 'dark', false); };
+  if (mq.addEventListener) mq.addEventListener('change', seguir); else if (mq.addListener) mq.addListener(seguir);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOGO DA COMPANHIA
+// Usa o arquivo oficial se existir em logos/<cia>.svg ou logos/<cia>.png;
+// sem o arquivo, mostra o selo com o nome da companhia.
+// ═══════════════════════════════════════════════════════════════
+const LOGO_EXT = ['svg', 'png'];
+const logoOk = {};
+function carregarLogo(cia) {
+  const img = $('brand-img'), selo = $('brand-badge');
+  selo.textContent = CIAS[cia].selo;
+  selo.hidden = false;
+  img.hidden = true;
+  img.alt = CIAS[cia].nome;
+  img.dataset.cia = cia;
+  if (logoOk[cia] === null) return;               // já sabemos que não há arquivo
+  let i = 0;
+  const tentar = () => {
+    if (img.dataset.cia !== cia) return;
+    if (i >= LOGO_EXT.length) { logoOk[cia] = null; img.removeAttribute('src'); return; }
+    img.src = logoOk[cia] || `logos/${cia}.${LOGO_EXT[i++]}`;
+  };
+  img.onload = () => {
+    if (img.dataset.cia !== cia) return;
+    logoOk[cia] = img.getAttribute('src');
+    img.hidden = false; selo.hidden = true;
+  };
+  img.onerror = () => { if (logoOk[cia]) logoOk[cia] = undefined; tentar(); };
+  tentar();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AVISO RÁPIDO
+// ═══════════════════════════════════════════════════════════════
+let toastT;
+function toast(msg, acao) {
+  const el = $('toast');
+  el.innerHTML = `<span>${msg}</span>` + (acao ? `<button>${acao.txt}</button>` : '');
+  if (acao) el.querySelector('button').onclick = acao.fn;
+  el.classList.add('on');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('on'), acao ? 10000 : 3500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INÍCIO DO APP
+// ═══════════════════════════════════════════════════════════════
+(function iniciar() {
+  const salvo = store.get('ct-aeronave');
+  if (salvo && FROTA[salvo]) { state.ac = salvo; state.ref_ac = salvo; }
+  aplicarTema(document.documentElement.getAttribute('data-theme') || 'dark', false);
+  aplicarAeronave(false);
+
+  // Teclado do celular: "próximo" avança para o campo seguinte
+  const ordem = { 'c-comp': 'c-larg', 'c-larg': 'c-alt', 'c-alt': 'c-peso', 'g-alt': 'g-larg' };
+  document.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const prox = ordem[inp.id];
+      if (prox) $(prox).focus(); else inp.blur();
+    });
+    inp.addEventListener('focus', function () {
+      setTimeout(() => this.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+    });
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharSheets(); });
+})();
+
+</script>
+<script>
+/* Instalação e atualização do app (GitHub Pages) */
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      reg.addEventListener('updatefound', function () {
+        var nova = reg.installing;
+        if (!nova) return;
+        nova.addEventListener('statechange', function () {
+          if (nova.state === 'installed' && navigator.serviceWorker.controller) {
+            toast('Nova versão do app disponível.', { txt: 'Atualizar', fn: function () { location.reload(); } });
+          }
+        });
+      });
+    }).catch(function () { /* sem service worker: o app funciona só com internet */ });
+  });
+}
+</script>
+</body>
+</html>
